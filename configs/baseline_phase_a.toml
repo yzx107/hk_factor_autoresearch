@@ -1,0 +1,35 @@
+version = "phase_a_baseline_v1"
+name = "Phase A semi-auto baseline"
+phase = "A"
+data_source_repo = "/Users/yxin/AI_Workstation/Hshare_Lab_v2"
+research_matrix = "/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Audits/research_admissibility_matrix.md"
+verified_matrix = "/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/verified_admission_matrix_2026-03-18.md"
+default_year = "2026"
+years = ["2025", "2026"]
+universe = "phase_a_core"
+cost_model_version = "fixed_cost_baseline_v1"
+backtest_window = "2025-01-01_to_2026-03-20"
+evaluation_profile = "fixed_phase_a_v1"
+
+[timing_caps]
+year_2025 = "coarse_only"
+year_2026 = "fine_ok"
+allow_precise_lag_2025 = false
+allow_precise_lag_2026 = true
+allow_queue_semantics = false
+allow_signed_flow_truth = false
+allow_direct_broker_alpha = false
+
+[engine]
+module = "backtest_engine.fixed_engine"
+change_control = "explicit_only"
+
+[immutable_surfaces]
+data_contracts = true
+backtest_engine = true
+evaluation = true
+gatekeeper = true
+
+[registry]
+experiment_log = "registry/experiment_log.tsv"
+lineage = "registry/lineage.json"
