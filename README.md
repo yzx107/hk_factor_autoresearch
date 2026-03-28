@@ -60,6 +60,14 @@ Track project progress:
 python3 harness/status.py
 ```
 
+Compare the latest two factor runs:
+
+```bash
+python3 harness/compare_factors.py \
+  --left-factor structural_activity_proxy \
+  --right-factor avg_trade_notional_bias
+```
+
 Each verified factor run also writes a fixed diagnostics artifact at:
 
 ```text

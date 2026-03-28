@@ -47,6 +47,15 @@ Each run writes:
 - `preview.json`
 - `factor_output.parquet`
 
+Latest-run comparison:
+
+```bash
+python3 harness/compare_factors.py \
+  --left-factor structural_activity_proxy \
+  --right-factor avg_trade_notional_bias \
+  --notes "safe factor comparison"
+```
+
 Why this exists:
 - keep experiment setup comparable
 - reduce token waste by emitting compact summaries
