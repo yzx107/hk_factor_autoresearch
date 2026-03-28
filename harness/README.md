@@ -56,6 +56,18 @@ python3 harness/compare_factors.py \
   --notes "safe factor comparison"
 ```
 
+Candidate scoreboard:
+
+```bash
+python3 harness/scoreboard.py \
+  --factors structural_activity_proxy avg_trade_notional_bias \
+  --notes "safe candidate board"
+```
+
+Each scoreboard writes:
+- `scoreboard_summary.json`
+- `scoreboard_report.md`
+
 Why this exists:
 - keep experiment setup comparable
 - reduce token waste by emitting compact summaries

@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 EXPERIMENT_LOG = ROOT / "registry" / "experiment_log.tsv"
 LINEAGE_PATH = ROOT / "registry" / "lineage.json"
 COMPARISON_LOG = ROOT / "registry" / "comparison_log.tsv"
+SCOREBOARD_LOG = ROOT / "registry" / "scoreboard_log.tsv"
 
 
 @dataclass(frozen=True)
@@ -24,6 +25,7 @@ class StatusSnapshot:
     latest_experiment: dict[str, Any] | None
     latest_data_run: dict[str, Any] | None
     latest_comparison: dict[str, Any] | None
+    latest_scoreboard: dict[str, Any] | None
 
 
 def read_experiment_log(path: Path = EXPERIMENT_LOG) -> list[dict[str, str]]:
@@ -41,6 +43,14 @@ def read_lineage(path: Path = LINEAGE_PATH) -> dict[str, Any]:
 
 
 def read_comparison_log(path: Path = COMPARISON_LOG) -> list[dict[str, str]]:
+    if not path.exists():
+        return []
+    with path.open("r", encoding="utf-8", newline="") as handle:
+        reader = csv.DictReader(handle, delimiter="\t")
+        return list(reader)
+
+
+def read_scoreboard_log(path: Path = SCOREBOARD_LOG) -> list[dict[str, str]]:
     if not path.exists():
         return []
     with path.open("r", encoding="utf-8", newline="") as handle:
@@ -72,6 +82,8 @@ def build_status_snapshot(entries: list[dict[str, str]]) -> StatusSnapshot:
     latest_data_run = _latest_data_run(entries)
     comparisons = read_comparison_log()
     latest_comparison = comparisons[-1] if comparisons else None
+    scoreboards = read_scoreboard_log()
+    latest_scoreboard = scoreboards[-1] if scoreboards else None
     return StatusSnapshot(
         experiment_count=len(entries),
         keep_count=keep_count,
@@ -80,6 +92,7 @@ def build_status_snapshot(entries: list[dict[str, str]]) -> StatusSnapshot:
         latest_experiment=latest_experiment,
         latest_data_run=latest_data_run,
         latest_comparison=latest_comparison,
+        latest_scoreboard=latest_scoreboard,
     )
 
 
@@ -128,6 +141,14 @@ def _text_status(snapshot: StatusSnapshot, entries: list[dict[str, str]], lineag
             f"right={comparison['right_factor']} "
             f"common_rows={comparison['common_rows']}"
         )
+    if snapshot.latest_scoreboard:
+        scoreboard = snapshot.latest_scoreboard
+        lines.append(
+            "latest_scoreboard "
+            f"id={scoreboard['scoreboard_id']} "
+            f"factors={scoreboard['factor_count']} "
+            f"comparisons={scoreboard['comparison_count']}"
+        )
     if entries:
         lines.append("recent")
         for entry in entries[-limit:]:
@@ -147,6 +168,7 @@ def main() -> int:
     lineage = read_lineage()
     snapshot = build_status_snapshot(entries)
     comparisons = read_comparison_log()
+    scoreboards = read_scoreboard_log()
     if args.json:
         print(
             json.dumps(
@@ -159,9 +181,11 @@ def main() -> int:
                         "latest_experiment": snapshot.latest_experiment,
                         "latest_data_run": snapshot.latest_data_run,
                         "latest_comparison": snapshot.latest_comparison,
+                        "latest_scoreboard": snapshot.latest_scoreboard,
                     },
                     "lineage": lineage,
                     "comparisons": comparisons[-args.limit :],
+                    "scoreboards": scoreboards[-args.limit :],
                     "recent": entries[-args.limit :],
                 },
                 indent=2,

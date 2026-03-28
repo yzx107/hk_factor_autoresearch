@@ -68,6 +68,19 @@ python3 harness/compare_factors.py \
   --right-factor avg_trade_notional_bias
 ```
 
+Build a candidate scoreboard:
+
+```bash
+python3 harness/scoreboard.py \
+  --factors structural_activity_proxy avg_trade_notional_bias
+```
+
+The scoreboard also writes:
+
+```text
+runs/<scoreboard_id>/scoreboard_report.md
+```
+
 Each verified factor run also writes a fixed diagnostics artifact at:
 
 ```text
