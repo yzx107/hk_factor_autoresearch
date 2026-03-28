@@ -53,3 +53,9 @@ python3 harness/run_verified_factor.py \
   --factor structural_activity_proxy \
   --dates 2026-03-13
 ```
+
+Track project progress:
+
+```bash
+python3 harness/status.py
+```

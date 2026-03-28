@@ -24,6 +24,22 @@ python3 harness/run_verified_factor.py \
   --dates 2026-03-13
 ```
 
+Progress view:
+
+```bash
+python3 harness/status.py
+```
+
+Suggested anchor run:
+
+```bash
+python3 harness/run_verified_factor.py \
+  --card research_cards/examples/structural_activity_proxy_2026.md \
+  --factor structural_activity_proxy \
+  --dates 2026-01-05 2026-02-24 2026-03-13 \
+  --notes "three-anchor verified run"
+```
+
 Why this exists:
 - keep experiment setup comparable
 - reduce token waste by emitting compact summaries
