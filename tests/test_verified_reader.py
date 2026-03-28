@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 import unittest
 
-from harness.verified_reader import build_partition_paths
+from harness.verified_reader import build_partition_paths, next_available_dates
 
 
 class VerifiedReaderTest(unittest.TestCase):
@@ -12,6 +12,11 @@ class VerifiedReaderTest(unittest.TestCase):
         self.assertEqual(len(paths), 1)
         self.assertIsInstance(paths[0], Path)
         self.assertTrue(paths[0].exists())
+
+    def test_next_available_dates_uses_verified_manifest_order(self) -> None:
+        mapping = next_available_dates("verified_trades", ["2026-01-05", "2026-03-13"])
+        self.assertEqual(mapping["2026-01-05"], "2026-01-06")
+        self.assertNotIn("2026-03-13", mapping)
 
 
 if __name__ == "__main__":

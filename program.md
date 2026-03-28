@@ -57,9 +57,10 @@ Default narrow mutable surface for one experiment:
 
 1. Write a research card before implementation.
 2. Run Gate A before any backtest claim.
-3. `allow_with_caveat` stays manual-review gated.
-4. Failed experiments remain in the registry.
-5. Renaming the same idea does not reset lineage.
+3. Run the fixed pre-eval harness before ranking candidates.
+4. `allow_with_caveat` stays manual-review gated.
+5. Failed experiments remain in the registry.
+6. Renaming the same idea does not reset lineage.
 
 ## Autoresearch Loop
 
@@ -67,10 +68,12 @@ Default narrow mutable surface for one experiment:
 2. Agent proposes one bounded experiment via a research card.
 3. Agent edits only the narrow mutable surface for that experiment.
 4. Agent runs the Phase A harness.
-5. Harness records `pass`, `allow_with_caveat`, or `fail`.
-6. `fail` means discard the candidate revision.
-7. `allow_with_caveat` means manual review, not auto-promotion.
-8. `pass` means the idea may proceed to the next controlled stage.
+5. Agent runs the fixed pre-eval on any materialized factor output.
+6. Agent rebuilds comparison and scoreboard artifacts on the same frozen rules.
+7. Harness records `pass`, `allow_with_caveat`, or `fail`.
+8. `fail` means discard the candidate revision.
+9. `allow_with_caveat` means manual review, not auto-promotion.
+10. `pass` means the idea may proceed to the next controlled stage.
 
 ## Token Discipline
 

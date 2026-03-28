@@ -64,9 +64,21 @@ python3 harness/scoreboard.py \
   --notes "safe candidate board"
 ```
 
+Fixed pre-eval:
+
+```bash
+python3 harness/run_pre_eval.py \
+  --factor structural_activity_proxy \
+  --notes "fixed forward-return pre-eval"
+```
+
 Each scoreboard writes:
 - `scoreboard_summary.json`
 - `scoreboard_report.md`
+
+Each pre-eval writes:
+- `pre_eval_summary.json`
+- `label_preview.json`
 
 Why this exists:
 - keep experiment setup comparable

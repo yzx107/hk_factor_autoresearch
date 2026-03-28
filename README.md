@@ -23,6 +23,7 @@ What is here now:
 - `gatekeeper/gate_a_data.py` for minimal admissibility checks
 - `configs/baseline_phase_a.toml` for a frozen baseline config
 - `harness/run_phase_a.py` for the minimal autoresearch-style loop
+- `harness/run_pre_eval.py` for fixed forward-return pre-eval
 - `registry/` for append-only experiment skeletons
 
 What is not here:
@@ -75,6 +76,13 @@ python3 harness/scoreboard.py \
   --factors structural_activity_proxy avg_trade_notional_bias
 ```
 
+Run fixed pre-eval on the latest factor experiment:
+
+```bash
+python3 harness/run_pre_eval.py \
+  --factor structural_activity_proxy
+```
+
 The scoreboard also writes:
 
 ```text
@@ -85,4 +93,10 @@ Each verified factor run also writes a fixed diagnostics artifact at:
 
 ```text
 runs/<experiment_id>/diagnostics_summary.json
+```
+
+Each fixed pre-eval run writes:
+
+```text
+runs/<pre_eval_id>/pre_eval_summary.json
 ```

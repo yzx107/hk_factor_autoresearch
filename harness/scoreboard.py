@@ -18,6 +18,7 @@ if str(ROOT) not in sys.path:
 
 EXPERIMENT_LOG = ROOT / "registry" / "experiment_log.tsv"
 COMPARISON_LOG = ROOT / "registry" / "comparison_log.tsv"
+PRE_EVAL_LOG = ROOT / "registry" / "pre_eval_log.tsv"
 SCOREBOARD_LOG = ROOT / "registry" / "scoreboard_log.tsv"
 RUN_ROOT = ROOT / "runs"
 
@@ -60,6 +61,32 @@ def _factor_row(entry: dict[str, str]) -> dict[str, Any]:
     }
 
 
+def _latest_pre_eval_by_experiment(entries: list[dict[str, str]]) -> dict[str, dict[str, str]]:
+    latest: dict[str, dict[str, str]] = {}
+    for entry in entries:
+        latest[entry["experiment_id"]] = entry
+    return latest
+
+
+def _pre_eval_row(entry: dict[str, str] | None) -> dict[str, Any] | None:
+    if not entry:
+        return None
+    summary = _load_json(Path(entry["summary_path"]))
+    return {
+        "pre_eval_id": entry["pre_eval_id"],
+        "experiment_id": entry["experiment_id"],
+        "factor_name": entry["factor_name"],
+        "label_name": summary["label_name"],
+        "labeled_dates": summary["labeled_dates"],
+        "skipped_dates": summary["skipped_dates"],
+        "joined_rows": summary["joined_rows"],
+        "mean_rank_ic": summary["mean_rank_ic"],
+        "mean_abs_rank_ic": summary["mean_abs_rank_ic"],
+        "mean_top_bottom_spread": summary["mean_top_bottom_spread"],
+        "mean_coverage_ratio": summary["mean_coverage_ratio"],
+    }
+
+
 def _comparison_index(entries: list[dict[str, str]]) -> dict[tuple[str, str], dict[str, str]]:
     index: dict[tuple[str, str], dict[str, str]] = {}
     for entry in entries:
@@ -79,6 +106,18 @@ def _comparison_row(entry: dict[str, str]) -> dict[str, Any]:
         "per_date_corr": summary["per_date"],
         "top_overlap": summary["top_overlap"],
     }
+
+
+def _score_sort_key(row: dict[str, Any]) -> tuple[bool, float, float, float]:
+    abs_ic = row["mean_abs_rank_ic"]
+    corr = row["mean_abs_peer_corr"]
+    distinct = float(row["distinct_instruments"])
+    return (
+        abs_ic is None,
+        0.0 if abs_ic is None else -float(abs_ic),
+        float(corr),
+        -distinct,
+    )
 
 
 def _average(values: list[float]) -> float:
@@ -117,6 +156,7 @@ def _derive_factor_board(
                     peer_corrs.append(_average(corr_values))
                 if overlap_values:
                     peer_overlaps.append(_average(overlap_values))
+        pre_eval = factor.get("pre_eval") or {}
         board.append(
             {
                 "factor_name": factor["factor_name"],
@@ -126,11 +166,20 @@ def _derive_factor_board(
                 "overall_score_mean": factor["overall_score_mean"],
                 "mean_abs_peer_corr": _average(peer_corrs),
                 "mean_top_overlap_count": _average(peer_overlaps),
+                "pre_eval_id": pre_eval.get("pre_eval_id"),
+                "label_name": pre_eval.get("label_name"),
+                "evaluated_dates": pre_eval.get("labeled_dates", []),
+                "skipped_dates": pre_eval.get("skipped_dates", []),
+                "joined_rows": pre_eval.get("joined_rows"),
+                "mean_rank_ic": pre_eval.get("mean_rank_ic"),
+                "mean_abs_rank_ic": pre_eval.get("mean_abs_rank_ic"),
+                "mean_top_bottom_spread": pre_eval.get("mean_top_bottom_spread"),
+                "mean_coverage_ratio": pre_eval.get("mean_coverage_ratio"),
                 "dates": factor["dates"],
                 "notes": factor["notes"],
             }
         )
-    return sorted(board, key=lambda row: (row["mean_abs_peer_corr"], -row["distinct_instruments"]))
+    return sorted(board, key=_score_sort_key)
 
 
 def _render_markdown(payload: dict[str, Any]) -> str:
@@ -141,10 +190,18 @@ def _render_markdown(payload: dict[str, Any]) -> str:
     lines.append(f"- created_at: `{payload['created_at']}`")
     lines.append(f"- factor_count: `{payload['factor_count']}`")
     lines.append(f"- comparison_count: `{payload['comparison_count']}`")
+    lines.append(f"- pre_eval_count: `{payload['pre_eval_count']}`")
     lines.append("")
     lines.append("## Factor Board")
     lines.append("")
     for row in payload["factor_board"]:
+        pre_eval_text = (
+            f"mean_abs_rank_ic=`{row['mean_abs_rank_ic']:.4f}` "
+            f"mean_spread=`{row['mean_top_bottom_spread']:.4f}` "
+            f"coverage=`{row['mean_coverage_ratio']:.3f}`"
+            if row["mean_abs_rank_ic"] is not None and row["mean_top_bottom_spread"] is not None
+            else "pre_eval=`missing`"
+        )
         lines.append(
             "- "
             f"`{row['factor_name']}` "
@@ -152,7 +209,24 @@ def _render_markdown(payload: dict[str, Any]) -> str:
             f"rows=`{row['output_rows']}` "
             f"distinct_instruments=`{row['distinct_instruments']}` "
             f"mean_abs_peer_corr=`{row['mean_abs_peer_corr']:.3f}` "
-            f"mean_top_overlap=`{row['mean_top_overlap_count']:.2f}`"
+            f"mean_top_overlap=`{row['mean_top_overlap_count']:.2f}` "
+            f"{pre_eval_text}"
+        )
+    lines.append("")
+    lines.append("## Pre-Eval Notes")
+    lines.append("")
+    for row in payload["factor_board"]:
+        if row["mean_abs_rank_ic"] is None:
+            lines.append(f"- `{row['factor_name']}` pre_eval missing")
+            continue
+        lines.append(
+            "- "
+            f"`{row['factor_name']}` "
+            f"dates=`{','.join(row['evaluated_dates'])}` "
+            f"joined_rows=`{row['joined_rows']}` "
+            f"mean_rank_ic=`{row['mean_rank_ic']:.4f}` "
+            f"mean_abs_rank_ic=`{row['mean_abs_rank_ic']:.4f}` "
+            f"mean_top_bottom_spread=`{row['mean_top_bottom_spread']:.4f}`"
         )
     lines.append("")
     lines.append("## Comparison Notes")
@@ -197,7 +271,13 @@ def build_scoreboard(factor_names: list[str], *, notes: str) -> tuple[str, dict[
     if missing:
         raise ValueError(f"Missing latest runs for: {', '.join(missing)}")
 
-    factor_rows = [_factor_row(latest_runs[factor]) for factor in factor_names]
+    pre_eval_entries = _read_tsv(PRE_EVAL_LOG)
+    latest_pre_eval = _latest_pre_eval_by_experiment(pre_eval_entries)
+    factor_rows = []
+    for factor in factor_names:
+        row = _factor_row(latest_runs[factor])
+        row["pre_eval"] = _pre_eval_row(latest_pre_eval.get(row["experiment_id"]))
+        factor_rows.append(row)
 
     comparison_entries = _read_tsv(COMPARISON_LOG)
     comparison_index = _comparison_index(comparison_entries)
@@ -225,6 +305,7 @@ def build_scoreboard(factor_names: list[str], *, notes: str) -> tuple[str, dict[
         "notes": notes,
         "factor_count": len(factor_rows),
         "comparison_count": len(comparison_rows),
+        "pre_eval_count": sum(1 for row in factor_rows if row["pre_eval"] is not None),
         "factors": factor_rows,
         "factor_board": factor_board,
         "comparisons": comparison_rows,

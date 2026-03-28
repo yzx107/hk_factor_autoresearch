@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 import sys
+from typing import Any
 
 import polars as pl
 
@@ -28,6 +30,55 @@ def build_partition_paths(table_name: str, dates: list[str]) -> list[Path]:
             raise FileNotFoundError(f"Verified partition not found: {path}")
         paths.append(path)
     return paths
+
+
+def verified_manifest_path(year: str) -> Path:
+    return VERIFIED_ROOT / "manifests" / f"year={year}" / "summary.json"
+
+
+def load_verified_manifest(year: str) -> dict[str, Any]:
+    path = verified_manifest_path(year)
+    if not path.exists():
+        raise FileNotFoundError(f"Verified manifest not found: {path}")
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def available_dates(table_name: str, year: str) -> list[str]:
+    manifest = load_verified_manifest(year)
+    table_payload = manifest.get("tables", {}).get(table_name)
+    if not table_payload:
+        raise ValueError(f"Manifest missing table `{table_name}` for year `{year}`.")
+    dates = [str(date) for date in table_payload.get("dates", [])]
+    return sorted(dates)
+
+
+def next_available_dates(
+    table_name: str,
+    dates: list[str],
+    *,
+    step: int = 1,
+) -> dict[str, str]:
+    if step < 1:
+        raise ValueError("step must be >= 1")
+    if not dates:
+        return {}
+
+    per_year: dict[str, list[str]] = {}
+    for date in dates:
+        per_year.setdefault(_year_from_date(date), []).append(date)
+
+    mapping: dict[str, str] = {}
+    for year, year_dates in per_year.items():
+        available = available_dates(table_name, year)
+        index = {date: idx for idx, date in enumerate(available)}
+        for date in year_dates:
+            pos = index.get(date)
+            if pos is None:
+                continue
+            next_pos = pos + step
+            if next_pos < len(available):
+                mapping[date] = available[next_pos]
+    return mapping
 
 
 def instrument_key_expr() -> pl.Expr:

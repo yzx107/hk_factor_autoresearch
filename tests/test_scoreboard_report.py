@@ -12,6 +12,7 @@ class ScoreboardReportTest(unittest.TestCase):
             "created_at": "2026-03-29T00:00:00+00:00",
             "factor_count": 1,
             "comparison_count": 0,
+            "pre_eval_count": 1,
             "factor_board": [
                 {
                     "factor_name": "f1",
@@ -20,6 +21,12 @@ class ScoreboardReportTest(unittest.TestCase):
                     "distinct_instruments": 5,
                     "mean_abs_peer_corr": 0.0,
                     "mean_top_overlap_count": 0.0,
+                    "mean_abs_rank_ic": 0.12,
+                    "mean_rank_ic": 0.12,
+                    "mean_top_bottom_spread": 0.01,
+                    "mean_coverage_ratio": 1.0,
+                    "evaluated_dates": ["2026-03-13"],
+                    "joined_rows": 10,
                 }
             ],
             "comparisons": [],
@@ -28,6 +35,7 @@ class ScoreboardReportTest(unittest.TestCase):
         text = _render_markdown(payload)
         self.assertIn("Candidate Scoreboard", text)
         self.assertIn("f1", text)
+        self.assertIn("mean_abs_rank_ic", text)
 
 
 if __name__ == "__main__":

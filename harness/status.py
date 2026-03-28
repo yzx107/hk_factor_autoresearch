@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 EXPERIMENT_LOG = ROOT / "registry" / "experiment_log.tsv"
 LINEAGE_PATH = ROOT / "registry" / "lineage.json"
 COMPARISON_LOG = ROOT / "registry" / "comparison_log.tsv"
+PRE_EVAL_LOG = ROOT / "registry" / "pre_eval_log.tsv"
 SCOREBOARD_LOG = ROOT / "registry" / "scoreboard_log.tsv"
 
 
@@ -25,6 +26,7 @@ class StatusSnapshot:
     latest_experiment: dict[str, Any] | None
     latest_data_run: dict[str, Any] | None
     latest_comparison: dict[str, Any] | None
+    latest_pre_eval: dict[str, Any] | None
     latest_scoreboard: dict[str, Any] | None
 
 
@@ -58,6 +60,14 @@ def read_scoreboard_log(path: Path = SCOREBOARD_LOG) -> list[dict[str, str]]:
         return list(reader)
 
 
+def read_pre_eval_log(path: Path = PRE_EVAL_LOG) -> list[dict[str, str]]:
+    if not path.exists():
+        return []
+    with path.open("r", encoding="utf-8", newline="") as handle:
+        reader = csv.DictReader(handle, delimiter="\t")
+        return list(reader)
+
+
 def _latest_data_run(entries: list[dict[str, str]]) -> dict[str, Any] | None:
     for entry in reversed(entries):
         summary_path = Path(entry["run_dir"]) / "data_run_summary.json"
@@ -82,6 +92,8 @@ def build_status_snapshot(entries: list[dict[str, str]]) -> StatusSnapshot:
     latest_data_run = _latest_data_run(entries)
     comparisons = read_comparison_log()
     latest_comparison = comparisons[-1] if comparisons else None
+    pre_evals = read_pre_eval_log()
+    latest_pre_eval = pre_evals[-1] if pre_evals else None
     scoreboards = read_scoreboard_log()
     latest_scoreboard = scoreboards[-1] if scoreboards else None
     return StatusSnapshot(
@@ -92,6 +104,7 @@ def build_status_snapshot(entries: list[dict[str, str]]) -> StatusSnapshot:
         latest_experiment=latest_experiment,
         latest_data_run=latest_data_run,
         latest_comparison=latest_comparison,
+        latest_pre_eval=latest_pre_eval,
         latest_scoreboard=latest_scoreboard,
     )
 
@@ -141,6 +154,15 @@ def _text_status(snapshot: StatusSnapshot, entries: list[dict[str, str]], lineag
             f"right={comparison['right_factor']} "
             f"common_rows={comparison['common_rows']}"
         )
+    if snapshot.latest_pre_eval:
+        pre_eval = snapshot.latest_pre_eval
+        lines.append(
+            "latest_pre_eval "
+            f"id={pre_eval['pre_eval_id']} "
+            f"factor={pre_eval['factor_name']} "
+            f"joined_rows={pre_eval['joined_rows']} "
+            f"mean_abs_rank_ic={pre_eval['mean_abs_rank_ic']}"
+        )
     if snapshot.latest_scoreboard:
         scoreboard = snapshot.latest_scoreboard
         lines.append(
@@ -168,6 +190,7 @@ def main() -> int:
     lineage = read_lineage()
     snapshot = build_status_snapshot(entries)
     comparisons = read_comparison_log()
+    pre_evals = read_pre_eval_log()
     scoreboards = read_scoreboard_log()
     if args.json:
         print(
@@ -181,10 +204,12 @@ def main() -> int:
                         "latest_experiment": snapshot.latest_experiment,
                         "latest_data_run": snapshot.latest_data_run,
                         "latest_comparison": snapshot.latest_comparison,
+                        "latest_pre_eval": snapshot.latest_pre_eval,
                         "latest_scoreboard": snapshot.latest_scoreboard,
                     },
                     "lineage": lineage,
                     "comparisons": comparisons[-args.limit :],
+                    "pre_evals": pre_evals[-args.limit :],
                     "scoreboards": scoreboards[-args.limit :],
                     "recent": entries[-args.limit :],
                 },
