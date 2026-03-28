@@ -13,6 +13,7 @@ DEFAULT_CONFIG_PATH = ROOT / "configs" / "baseline_phase_a.toml"
 @dataclass(frozen=True)
 class BaselineConfig:
     version: str
+    harness_version: str
     years: tuple[str, ...]
     universe: str
     cost_model_version: str
@@ -24,6 +25,7 @@ def load_baseline_config(path: Path = DEFAULT_CONFIG_PATH) -> BaselineConfig:
     raw = tomllib.loads(path.read_text(encoding="utf-8"))
     return BaselineConfig(
         version=raw["version"],
+        harness_version=raw["harness_version"],
         years=tuple(raw["years"]),
         universe=raw["universe"],
         cost_model_version=raw["cost_model_version"],

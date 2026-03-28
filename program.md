@@ -1,5 +1,16 @@
 # Program
 
+## Harness Law
+
+This repo follows the `autoresearch` harness law:
+- the experiment object may change
+- the evaluation harness may not drift during ordinary research
+
+In practice:
+- humans evolve `program.md`
+- agents work only inside the narrow mutable surface
+- all experiments run through the same harness and append-only registry
+
 ## Immutable Layer 0
 
 These surfaces are frozen until explicit change control:
@@ -8,6 +19,7 @@ These surfaces are frozen until explicit change control:
 - `evaluation/`
 - `gatekeeper/`
 - `configs/baseline_phase_a.toml`
+- `harness/`
 - `registry/` schemas
 
 Phase A boundary inherited from upstream `Hshare_Lab_v2`:
@@ -28,6 +40,11 @@ Phase A boundary inherited from upstream `Hshare_Lab_v2`:
 - add derived run configs under `configs/` without changing the frozen baseline
 - append experiment rows and lineage entries
 
+Default narrow mutable surface for one experiment:
+- one research card
+- one factor definition or one small transform/combo change
+- no harness edits in the same experiment branch
+
 ## Agent May Not Change
 
 - anything inside `/Users/yxin/AI_Workstation/Hshare_Lab_v2`
@@ -43,3 +60,24 @@ Phase A boundary inherited from upstream `Hshare_Lab_v2`:
 3. `allow_with_caveat` stays manual-review gated.
 4. Failed experiments remain in the registry.
 5. Renaming the same idea does not reset lineage.
+
+## Autoresearch Loop
+
+1. Human updates `program.md` when the research policy changes.
+2. Agent proposes one bounded experiment via a research card.
+3. Agent edits only the narrow mutable surface for that experiment.
+4. Agent runs the Phase A harness.
+5. Harness records `pass`, `allow_with_caveat`, or `fail`.
+6. `fail` means discard the candidate revision.
+7. `allow_with_caveat` means manual review, not auto-promotion.
+8. `pass` means the idea may proceed to the next controlled stage.
+
+## Token Discipline
+
+To reduce token burn:
+- read only `program.md`, the baseline config, the active card, and the last few
+  registry rows before acting
+- prefer card front matter and compact machine-readable output over long prose
+- send long command output to `runs/` artifacts instead of pasting it back into
+  chat
+- use the harness runner's compact summary as the default status report

@@ -1,4 +1,5 @@
 version = "phase_a_baseline_v1"
+harness_version = "phase_a_harness_v1"
 name = "Phase A semi-auto baseline"
 phase = "A"
 data_source_repo = "/Users/yxin/AI_Workstation/Hshare_Lab_v2"
@@ -23,6 +24,7 @@ allow_direct_broker_alpha = false
 [engine]
 module = "backtest_engine.fixed_engine"
 change_control = "explicit_only"
+runner = "harness.run_phase_a"
 
 [immutable_surfaces]
 data_contracts = true

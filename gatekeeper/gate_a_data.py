@@ -135,6 +135,10 @@ def _load_card(path: Path) -> dict[str, Any]:
     return tomllib.loads(front_matter)
 
 
+def load_research_card(path: Path) -> dict[str, Any]:
+    return _load_card(path)
+
+
 def _validate_card_shape(card: dict[str, Any], errors: list[str]) -> None:
     missing_top = sorted(REQUIRED_TOP_LEVEL_KEYS - set(card))
     if missing_top:
