@@ -59,3 +59,9 @@ Track project progress:
 ```bash
 python3 harness/status.py
 ```
+
+Each verified factor run also writes a fixed diagnostics artifact at:
+
+```text
+runs/<experiment_id>/diagnostics_summary.json
+```

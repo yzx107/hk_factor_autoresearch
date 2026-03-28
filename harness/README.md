@@ -40,6 +40,13 @@ python3 harness/run_verified_factor.py \
   --notes "three-anchor verified run"
 ```
 
+Each run writes:
+- `result.json`
+- `data_run_summary.json`
+- `diagnostics_summary.json`
+- `preview.json`
+- `factor_output.parquet`
+
 Why this exists:
 - keep experiment setup comparable
 - reduce token waste by emitting compact summaries

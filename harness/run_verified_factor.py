@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from evaluation.diagnostics import build_signal_diagnostics
 from gatekeeper.gate_a_data import load_research_card
 from harness.run_phase_a import build_record, append_experiment_log, append_lineage
 from harness.verified_reader import load_verified_lazy
@@ -73,22 +74,27 @@ def main() -> int:
 
     module = _load_factor_module(args.factor)
     table_name = getattr(module, "INPUT_TABLE")
+    score_column = getattr(module, "OUTPUT_COLUMN")
     lazy_frame = load_verified_lazy(table_name, args.dates, _required_columns(card))
     signal_lazy = module.compute_signal(lazy_frame)
     signal_df = signal_lazy.collect()
+    diagnostics = build_signal_diagnostics(signal_df, score_column=score_column)
 
     run_dir = Path(record.run_dir)
     signal_path = run_dir / "factor_output.parquet"
     preview_path = run_dir / "preview.json"
     summary_path = run_dir / "data_run_summary.json"
+    diagnostics_path = run_dir / "diagnostics_summary.json"
 
     signal_df.write_parquet(signal_path)
     preview_rows = signal_df.head(10).to_dicts()
     preview_path.write_text(json.dumps(preview_rows, indent=2, default=str), encoding="utf-8")
+    diagnostics_path.write_text(json.dumps(diagnostics, indent=2, default=str), encoding="utf-8")
     summary = {
         "experiment_id": record.experiment_id,
         "factor_name": args.factor,
         "table_name": table_name,
+        "score_column": score_column,
         "dates": args.dates,
         "input_columns": _required_columns(card),
         "output_rows": signal_df.height,
@@ -96,6 +102,7 @@ def main() -> int:
         "artifacts": {
             "factor_output": str(signal_path),
             "preview": str(preview_path),
+            "diagnostics_summary": str(diagnostics_path),
         },
     }
     summary_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
