@@ -44,3 +44,12 @@ python3 harness/run_phase_a.py \
   --card research_cards/examples/structural_activity_proxy_2026.md \
   --factor structural_activity_proxy
 ```
+
+Real-data 2026 verified run:
+
+```bash
+python3 harness/run_verified_factor.py \
+  --card research_cards/examples/structural_activity_proxy_2026.md \
+  --factor structural_activity_proxy \
+  --dates 2026-03-13
+```

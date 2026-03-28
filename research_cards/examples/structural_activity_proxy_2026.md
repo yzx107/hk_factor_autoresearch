@@ -7,10 +7,10 @@ years = ["2026"]
 universe = "phase_a_core"
 holding_horizon = "30m_to_1d"
 research_modules = ["order_trade_coverage_profile"]
-required_fields = ["TickID", "Time", "Price", "Volume"]
+required_fields = ["date", "source_file", "Price", "Volume"]
 hypothesis = "High intraday activity concentration may proxy for short-horizon attention and carry over into later intraday or next-day moves."
 mechanism = "Unusually concentrated price-volume activity may capture temporary information arrival or inventory pressure without relying on blocked field semantics."
-info_boundary = "Uses only structural trade fields already admitted by the upstream verified boundary."
+info_boundary = "Uses only verified structural trade fields plus a file-derived instrument key extracted from source_file."
 failure_modes = ["Signal is only a size or liquidity proxy.", "Activity spikes are event pollution and do not persist.", "Cross-sectional effect vanishes after normalization."]
 expected_risks = ["Attention proxy overlap.", "Event contamination.", "High-turnover decay."]
 
@@ -45,11 +45,12 @@ Thirty minutes to one day.
 
 ## Required Fields
 
-`TickID`, `Time`, `Price`, `Volume`
+`date`, `source_file`, `Price`, `Volume`
 
 ## Info Boundary
 
-No `TradeDir`, `BrokerNo`, queue, or vendor-code semantics.
+No `TradeDir`, `BrokerNo`, queue, or vendor-code semantics. Instrument grouping
+is derived from `source_file` filename only.
 
 ## Failure Modes
 
