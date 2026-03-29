@@ -69,6 +69,8 @@ Default narrow mutable surface for one experiment:
 3. Agent edits only the narrow mutable surface for that experiment.
 4. Agent runs the Phase A harness.
 5. Agent runs the fixed pre-eval on any materialized factor output.
+Pre-eval is allowed to use fixed non-linear metrics such as normalized mutual
+information, but only under frozen binning and label rules.
 6. Agent rebuilds comparison and scoreboard artifacts on the same frozen rules.
 7. Agent runs the fixed autoresearch cycle over the configured inventory.
 8. Harness records `pass`, `allow_with_caveat`, or `fail`.

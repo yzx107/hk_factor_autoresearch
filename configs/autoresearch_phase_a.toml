@@ -6,6 +6,8 @@ anchor_dates = ["2026-01-05", "2026-02-24", "2026-03-13"]
 [selection]
 min_abs_rank_ic_keep = 0.05
 min_abs_rank_ic_review = 0.02
+min_normalized_mi_keep = 0.03
+min_normalized_mi_review = 0.015
 max_mean_abs_peer_corr = 0.50
 
 [[candidates]]

@@ -28,6 +28,11 @@ What is here now:
 - `harness/autoresearch_cycle.py` for the end-to-end cycle runner
 - `registry/` for append-only experiment skeletons
 
+Fixed pre-eval now reports:
+- rank IC
+- top-bottom spread
+- normalized mutual information (NMI) under a frozen binning rule
+
 What is not here:
 - no multi-agent search factory
 - no production backtester

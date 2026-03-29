@@ -82,6 +82,8 @@ def _pre_eval_row(entry: dict[str, str] | None) -> dict[str, Any] | None:
         "joined_rows": summary["joined_rows"],
         "mean_rank_ic": summary["mean_rank_ic"],
         "mean_abs_rank_ic": summary["mean_abs_rank_ic"],
+        "mean_mutual_info": summary.get("mean_mutual_info"),
+        "mean_normalized_mutual_info": summary.get("mean_normalized_mutual_info"),
         "mean_top_bottom_spread": summary["mean_top_bottom_spread"],
         "mean_coverage_ratio": summary["mean_coverage_ratio"],
     }
@@ -108,13 +110,15 @@ def _comparison_row(entry: dict[str, str]) -> dict[str, Any]:
     }
 
 
-def _score_sort_key(row: dict[str, Any]) -> tuple[bool, float, float, float]:
+def _score_sort_key(row: dict[str, Any]) -> tuple[bool, float, float, float, float]:
     abs_ic = row["mean_abs_rank_ic"]
+    normalized_mi = row["mean_normalized_mutual_info"]
     corr = row["mean_abs_peer_corr"]
     distinct = float(row["distinct_instruments"])
     return (
-        abs_ic is None,
+        abs_ic is None and normalized_mi is None,
         0.0 if abs_ic is None else -float(abs_ic),
+        0.0 if normalized_mi is None else -float(normalized_mi),
         float(corr),
         -distinct,
     )
@@ -173,6 +177,8 @@ def _derive_factor_board(
                 "joined_rows": pre_eval.get("joined_rows"),
                 "mean_rank_ic": pre_eval.get("mean_rank_ic"),
                 "mean_abs_rank_ic": pre_eval.get("mean_abs_rank_ic"),
+                "mean_mutual_info": pre_eval.get("mean_mutual_info"),
+                "mean_normalized_mutual_info": pre_eval.get("mean_normalized_mutual_info"),
                 "mean_top_bottom_spread": pre_eval.get("mean_top_bottom_spread"),
                 "mean_coverage_ratio": pre_eval.get("mean_coverage_ratio"),
                 "dates": factor["dates"],
@@ -197,9 +203,12 @@ def _render_markdown(payload: dict[str, Any]) -> str:
     for row in payload["factor_board"]:
         pre_eval_text = (
             f"mean_abs_rank_ic=`{row['mean_abs_rank_ic']:.4f}` "
+            f"mean_nmi=`{row['mean_normalized_mutual_info']:.4f}` "
             f"mean_spread=`{row['mean_top_bottom_spread']:.4f}` "
             f"coverage=`{row['mean_coverage_ratio']:.3f}`"
-            if row["mean_abs_rank_ic"] is not None and row["mean_top_bottom_spread"] is not None
+            if row["mean_abs_rank_ic"] is not None
+            and row["mean_normalized_mutual_info"] is not None
+            and row["mean_top_bottom_spread"] is not None
             else "pre_eval=`missing`"
         )
         lines.append(
@@ -226,6 +235,7 @@ def _render_markdown(payload: dict[str, Any]) -> str:
             f"joined_rows=`{row['joined_rows']}` "
             f"mean_rank_ic=`{row['mean_rank_ic']:.4f}` "
             f"mean_abs_rank_ic=`{row['mean_abs_rank_ic']:.4f}` "
+            f"mean_nmi=`{row['mean_normalized_mutual_info']:.4f}` "
             f"mean_top_bottom_spread=`{row['mean_top_bottom_spread']:.4f}`"
         )
     lines.append("")

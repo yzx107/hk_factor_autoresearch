@@ -44,11 +44,24 @@ def load_verified_manifest(year: str) -> dict[str, Any]:
 
 
 def available_dates(table_name: str, year: str) -> list[str]:
-    manifest = load_verified_manifest(year)
-    table_payload = manifest.get("tables", {}).get(table_name)
-    if not table_payload:
-        raise ValueError(f"Manifest missing table `{table_name}` for year `{year}`.")
-    dates = [str(date) for date in table_payload.get("dates", [])]
+    dates: set[str] = set()
+
+    try:
+        manifest = load_verified_manifest(year)
+        table_payload = manifest.get("tables", {}).get(table_name)
+        if table_payload:
+            dates.update(str(date) for date in table_payload.get("dates", []))
+    except FileNotFoundError:
+        pass
+
+    table_root = VERIFIED_ROOT / table_name / f"year={year}"
+    if table_root.exists():
+        for path in table_root.iterdir():
+            if path.is_dir() and path.name.startswith("date="):
+                dates.add(path.name.split("=", 1)[1])
+
+    if not dates:
+        raise ValueError(f"No verified dates found for table `{table_name}` in year `{year}`.")
     return sorted(dates)
 
 

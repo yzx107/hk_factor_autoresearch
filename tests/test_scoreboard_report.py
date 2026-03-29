@@ -23,6 +23,7 @@ class ScoreboardReportTest(unittest.TestCase):
                     "mean_top_overlap_count": 0.0,
                     "mean_abs_rank_ic": 0.12,
                     "mean_rank_ic": 0.12,
+                    "mean_normalized_mutual_info": 0.03,
                     "mean_top_bottom_spread": 0.01,
                     "mean_coverage_ratio": 1.0,
                     "evaluated_dates": ["2026-03-13"],
@@ -36,6 +37,7 @@ class ScoreboardReportTest(unittest.TestCase):
         self.assertIn("Candidate Scoreboard", text)
         self.assertIn("f1", text)
         self.assertIn("mean_abs_rank_ic", text)
+        self.assertIn("mean_nmi", text)
 
 
 if __name__ == "__main__":

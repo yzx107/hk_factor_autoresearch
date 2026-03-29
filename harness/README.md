@@ -95,3 +95,4 @@ Why this exists:
 - keep experiment setup comparable
 - reduce token waste by emitting compact summaries
 - make keep, caveat, and discard decisions explicit
+- capture both linear and non-linear signal evidence under fixed pre-eval rules

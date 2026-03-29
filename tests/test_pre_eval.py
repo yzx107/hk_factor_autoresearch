@@ -62,8 +62,11 @@ class PreEvalTest(unittest.TestCase):
         self.assertEqual(summary["skipped_dates"], [])
         self.assertAlmostEqual(summary["mean_rank_ic"], 1.0)
         self.assertAlmostEqual(summary["mean_abs_rank_ic"], 1.0)
+        self.assertAlmostEqual(summary["mean_normalized_mutual_info"], 1.0)
+        self.assertGreater(summary["mean_mutual_info"], 0.0)
         self.assertGreater(summary["mean_top_bottom_spread"], 0.0)
         self.assertEqual(len(summary["per_date"]), 1)
+        self.assertAlmostEqual(summary["per_date"][0]["normalized_mutual_info"], 1.0)
 
 
 if __name__ == "__main__":

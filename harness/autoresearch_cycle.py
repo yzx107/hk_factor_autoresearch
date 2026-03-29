@@ -38,6 +38,8 @@ class CandidateSpec:
 class SelectionPolicy:
     min_abs_rank_ic_keep: float
     min_abs_rank_ic_review: float
+    min_normalized_mi_keep: float
+    min_normalized_mi_review: float
     max_mean_abs_peer_corr: float
 
 
@@ -76,6 +78,8 @@ def load_cycle_config(path: Path = DEFAULT_CONFIG) -> CycleConfig:
         selection=SelectionPolicy(
             min_abs_rank_ic_keep=float(selection["min_abs_rank_ic_keep"]),
             min_abs_rank_ic_review=float(selection["min_abs_rank_ic_review"]),
+            min_normalized_mi_keep=float(selection["min_normalized_mi_keep"]),
+            min_normalized_mi_review=float(selection["min_normalized_mi_review"]),
             max_mean_abs_peer_corr=float(selection["max_mean_abs_peer_corr"]),
         ),
         candidates=candidates,
@@ -139,17 +143,33 @@ def _latest_comparison(
 def _recommendation(row: dict[str, Any], policy: SelectionPolicy) -> tuple[str, str]:
     abs_ic = row["mean_abs_rank_ic"]
     signed_ic = row["mean_rank_ic"]
+    normalized_mi = row.get("mean_normalized_mutual_info")
     mean_corr = float(row["mean_abs_peer_corr"])
-    if abs_ic is None:
+    strong_linear = abs_ic is not None and float(abs_ic) >= policy.min_abs_rank_ic_keep
+    review_linear = abs_ic is not None and float(abs_ic) >= policy.min_abs_rank_ic_review
+    strong_nonlinear = normalized_mi is not None and float(normalized_mi) >= policy.min_normalized_mi_keep
+    review_nonlinear = normalized_mi is not None and float(normalized_mi) >= policy.min_normalized_mi_review
+
+    if abs_ic is None and normalized_mi is None:
         return "missing_pre_eval", "No pre-eval summary is available for this factor."
-    if float(abs_ic) >= policy.min_abs_rank_ic_keep and signed_ic is not None and float(signed_ic) < 0:
+    if strong_linear and signed_ic is not None and float(signed_ic) < 0:
         return "consider_inverse", "Signed rank IC is negative while absolute IC clears the keep threshold."
-    if float(abs_ic) >= policy.min_abs_rank_ic_keep and mean_corr <= policy.max_mean_abs_peer_corr:
-        return "keep_candidate", "Absolute rank IC clears the keep threshold without looking crowded."
-    if float(abs_ic) >= policy.min_abs_rank_ic_keep:
-        return "keep_but_crowded", "Absolute rank IC is strong but peer correlation is elevated."
-    if float(abs_ic) >= policy.min_abs_rank_ic_review:
-        return "monitor", "Signal is above the review floor but below the keep threshold."
+    if (strong_linear or strong_nonlinear) and mean_corr <= policy.max_mean_abs_peer_corr:
+        reason = (
+            "Non-linear dependence clears the fixed MI keep threshold without looking crowded."
+            if strong_nonlinear and not strong_linear
+            else "Absolute rank IC or MI clears the keep threshold without looking crowded."
+        )
+        return "keep_candidate", reason
+    if strong_linear or strong_nonlinear:
+        return "keep_but_crowded", "Signal is strong on IC or MI but peer correlation is elevated."
+    if review_linear or review_nonlinear:
+        reason = (
+            "Signal is above the MI review floor but below the keep threshold."
+            if review_nonlinear and not review_linear
+            else "Signal is above the review floor but below the keep threshold."
+        )
+        return "monitor", reason
     return "discard_candidate", "Absolute rank IC stays below the fixed review floor."
 
 
@@ -170,6 +190,7 @@ def _render_report(payload: dict[str, Any]) -> str:
             f"`{item['factor_name']}` action=`{item['action']}` "
             f"mean_rank_ic=`{item['mean_rank_ic']}` "
             f"mean_abs_rank_ic=`{item['mean_abs_rank_ic']}` "
+            f"mean_nmi=`{item['mean_normalized_mutual_info']}` "
             f"peer_corr=`{item['mean_abs_peer_corr']}`"
         )
     lines.append("")
@@ -318,6 +339,7 @@ def run_autoresearch_cycle(
                 "reason": reason,
                 "mean_rank_ic": row["mean_rank_ic"],
                 "mean_abs_rank_ic": row["mean_abs_rank_ic"],
+                "mean_normalized_mutual_info": row.get("mean_normalized_mutual_info"),
                 "mean_abs_peer_corr": row["mean_abs_peer_corr"],
             }
         )

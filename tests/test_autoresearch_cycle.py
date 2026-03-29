@@ -20,6 +20,8 @@ class AutoresearchCycleTest(unittest.TestCase):
                 "[selection]\n"
                 "min_abs_rank_ic_keep = 0.05\n"
                 "min_abs_rank_ic_review = 0.02\n"
+                "min_normalized_mi_keep = 0.02\n"
+                "min_normalized_mi_review = 0.01\n"
                 "max_mean_abs_peer_corr = 0.50\n"
                 "\n"
                 "[[candidates]]\n"
@@ -42,11 +44,32 @@ class AutoresearchCycleTest(unittest.TestCase):
             SelectionPolicy(
                 min_abs_rank_ic_keep=0.05,
                 min_abs_rank_ic_review=0.02,
+                min_normalized_mi_keep=0.02,
+                min_normalized_mi_review=0.01,
                 max_mean_abs_peer_corr=0.50,
             ),
         )
         self.assertEqual(action, "consider_inverse")
         self.assertIn("negative", reason)
+
+    def test_recommendation_can_keep_nonlinear_candidate(self) -> None:
+        action, reason = _recommendation(
+            {
+                "mean_rank_ic": 0.0,
+                "mean_abs_rank_ic": 0.0,
+                "mean_normalized_mutual_info": 0.03,
+                "mean_abs_peer_corr": 0.10,
+            },
+            SelectionPolicy(
+                min_abs_rank_ic_keep=0.05,
+                min_abs_rank_ic_review=0.02,
+                min_normalized_mi_keep=0.02,
+                min_normalized_mi_review=0.01,
+                max_mean_abs_peer_corr=0.50,
+            ),
+        )
+        self.assertEqual(action, "keep_candidate")
+        self.assertIn("MI", reason)
 
 
 if __name__ == "__main__":
