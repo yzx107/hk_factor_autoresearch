@@ -18,6 +18,7 @@ if str(ROOT) not in sys.path:
 
 from evaluation.diagnostics import build_signal_diagnostics
 from gatekeeper.gate_a_data import load_research_card
+from harness.daily_agg import load_daily_agg_lazy, missing_daily_agg_dates
 from harness.run_phase_a import build_record, append_experiment_log, append_lineage
 from harness.verified_reader import load_verified_lazy, previous_available_dates
 
@@ -68,6 +69,16 @@ def _build_partition_loader(table_name: str):
     return _load
 
 
+def _factor_kwargs(compute_signal, *, target_dates: list[str], previous_date_map: dict[str, str]) -> dict[str, object]:
+    params = inspect.signature(compute_signal).parameters
+    kwargs: dict[str, object] = {}
+    if "target_dates" in params:
+        kwargs["target_dates"] = target_dates
+    if "previous_date_map" in params:
+        kwargs["previous_date_map"] = previous_date_map
+    return kwargs
+
+
 def run_verified_factor_experiment(
     *,
     card_path: Path,
@@ -106,7 +117,35 @@ def run_verified_factor_experiment(
         lookback_steps=lookback_steps,
     )
     signal_lazy: pl.LazyFrame
-    if hasattr(module, "compute_signal_from_loader"):
+    source_mode = "verified_raw"
+    source_table_name = table_name
+    loaded_columns = required_columns
+    daily_table_name = getattr(module, "DAILY_AGG_TABLE", "")
+    if daily_table_name and hasattr(module, "compute_signal_from_daily"):
+        daily_columns = list(getattr(module, "DAILY_SOURCE_COLUMNS", []))
+        missing_cache = missing_daily_agg_dates(daily_table_name, load_dates)
+        if not missing_cache:
+            source_mode = "daily_agg"
+            source_table_name = daily_table_name
+            loaded_columns = daily_columns
+            daily_frame = load_daily_agg_lazy(daily_table_name, load_dates, daily_columns)
+            signal_lazy = module.compute_signal_from_daily(
+                daily_frame,
+                **_factor_kwargs(module.compute_signal_from_daily, target_dates=dates, previous_date_map=previous_date_map),
+            )
+        elif hasattr(module, "compute_signal_from_loader"):
+            signal_lazy = module.compute_signal_from_loader(
+                table_loader=_build_partition_loader(table_name),
+                target_dates=dates,
+                previous_date_map=previous_date_map,
+            )
+        else:
+            lazy_frame = load_verified_lazy(table_name, load_dates, required_columns)
+            signal_lazy = module.compute_signal(
+                lazy_frame,
+                **_factor_kwargs(module.compute_signal, target_dates=dates, previous_date_map=previous_date_map),
+            )
+    elif hasattr(module, "compute_signal_from_loader"):
         signal_lazy = module.compute_signal_from_loader(
             table_loader=_build_partition_loader(table_name),
             target_dates=dates,
@@ -114,14 +153,10 @@ def run_verified_factor_experiment(
         )
     else:
         lazy_frame = load_verified_lazy(table_name, load_dates, required_columns)
-        compute_signal = module.compute_signal
-        params = inspect.signature(compute_signal).parameters
-        kwargs: dict[str, object] = {}
-        if "target_dates" in params:
-            kwargs["target_dates"] = dates
-        if "previous_date_map" in params:
-            kwargs["previous_date_map"] = previous_date_map
-        signal_lazy = compute_signal(lazy_frame, **kwargs)
+        signal_lazy = module.compute_signal(
+            lazy_frame,
+            **_factor_kwargs(module.compute_signal, target_dates=dates, previous_date_map=previous_date_map),
+        )
     signal_df = signal_lazy.collect()
     diagnostics = build_signal_diagnostics(signal_df, score_column=score_column)
 
@@ -138,11 +173,14 @@ def run_verified_factor_experiment(
     summary = {
         "experiment_id": record.experiment_id,
         "factor_name": factor_name,
-        "table_name": table_name,
+        "table_name": source_table_name,
+        "upstream_table_name": table_name,
+        "data_source_mode": source_mode,
         "score_column": score_column,
         "dates": dates,
         "loaded_dates": load_dates,
-        "input_columns": required_columns,
+        "card_required_fields": required_columns,
+        "input_columns": loaded_columns,
         "output_rows": signal_df.height,
         "output_columns": signal_df.columns,
         "artifacts": {

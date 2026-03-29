@@ -62,26 +62,43 @@ def run_batch_materialize(
     results: list[dict[str, Any]] = []
     for candidate in candidates:
         dates = available_dates(candidate["table_name"], year)
-        record, summary = run_verified_factor_experiment(
-            card_path=Path(candidate["card_path"]),
-            factor_name=candidate["factor_name"],
-            dates=dates,
-            owner=owner,
-            notes=notes or f"full-year materialize {year}",
-        )
-        results.append(
-            {
-                "factor_name": candidate["factor_name"],
-                "table_name": candidate["table_name"],
-                "experiment_id": record.experiment_id,
-                "run_dir": record.run_dir,
-                "gate_a_decision": record.gate_a_decision,
-                "status": record.status,
-                "dates": dates,
-                "output_rows": None if summary is None else summary["output_rows"],
-                "factor_output": "" if summary is None else summary["artifacts"]["factor_output"],
-            }
-        )
+        try:
+            record, summary = run_verified_factor_experiment(
+                card_path=Path(candidate["card_path"]),
+                factor_name=candidate["factor_name"],
+                dates=dates,
+                owner=owner,
+                notes=notes or f"full-year materialize {year}",
+            )
+            results.append(
+                {
+                    "factor_name": candidate["factor_name"],
+                    "table_name": candidate["table_name"],
+                    "experiment_id": record.experiment_id,
+                    "run_dir": record.run_dir,
+                    "gate_a_decision": record.gate_a_decision,
+                    "status": record.status,
+                    "dates": dates,
+                    "output_rows": None if summary is None else summary["output_rows"],
+                    "factor_output": "" if summary is None else summary["artifacts"]["factor_output"],
+                    "error": "",
+                }
+            )
+        except Exception as exc:
+            results.append(
+                {
+                    "factor_name": candidate["factor_name"],
+                    "table_name": candidate["table_name"],
+                    "experiment_id": "",
+                    "run_dir": "",
+                    "gate_a_decision": "error",
+                    "status": "error",
+                    "dates": dates,
+                    "output_rows": None,
+                    "factor_output": "",
+                    "error": str(exc),
+                }
+            )
 
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     batch_id = f"materialize_{year}_{table_filter or 'all'}_{stamp}"

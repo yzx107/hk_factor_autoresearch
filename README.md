@@ -23,6 +23,7 @@ What is here now:
 - `gatekeeper/gate_a_data.py` for minimal admissibility checks
 - `configs/baseline_phase_a.toml` for a frozen baseline config
 - `configs/autoresearch_phase_a.toml` for the fixed candidate inventory
+- `cache/daily_agg/` for local per-day aggregate caches built from upstream verified
 - `harness/run_phase_a.py` for the minimal autoresearch-style loop
 - `harness/run_pre_eval.py` for fixed forward-return pre-eval
 - `harness/autoresearch_cycle.py` for the end-to-end cycle runner
@@ -62,6 +63,12 @@ python3 harness/run_verified_factor.py \
   --dates 2026-03-13
 ```
 
+Build local daily aggregate cache:
+
+```bash
+python3 harness/build_daily_agg.py --table all --year 2026
+```
+
 Track project progress:
 
 ```bash
@@ -88,6 +95,12 @@ Run fixed pre-eval on the latest factor experiment:
 ```bash
 python3 harness/run_pre_eval.py \
   --factor structural_activity_proxy
+```
+
+Export shared labels for remote pre-eval workers:
+
+```bash
+python3 harness/export_forward_labels.py --year 2026
 ```
 
 Run one full autoresearch cycle:

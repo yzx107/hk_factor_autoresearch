@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import date as dt_date
 import math
 
 import polars as pl
@@ -11,6 +12,16 @@ from factor_defs.change_support import collect_daily_frames_from_loader
 INPUT_TABLE = "verified_trades"
 OUTPUT_COLUMN = "structural_activity_score"
 SOURCE_COLUMNS = ["date", "source_file", "Price", "Volume"]
+DAILY_AGG_TABLE = "verified_trades_daily"
+DAILY_SOURCE_COLUMNS = [
+    "date",
+    "instrument_key",
+    "trade_count",
+    "turnover",
+    "share_volume",
+    "avg_trade_size",
+    "instrument_key_source",
+]
 
 def _daily_base(trades: pl.LazyFrame) -> pl.LazyFrame:
     turnover = (pl.col("Price") * pl.col("Volume")).sum().alias("turnover")
@@ -50,6 +61,26 @@ def compute_signal_from_loader(
         daily_frame_builder=_daily_base,
         dates=list(target_dates or []),
     ).sort(["date", OUTPUT_COLUMN], descending=[False, True])
+
+
+def compute_signal_from_daily(
+    daily: pl.LazyFrame,
+    *,
+    target_dates: list[str] | None = None,
+    previous_date_map: dict[str, str] | None = None,
+) -> pl.LazyFrame:
+    del previous_date_map
+    frame = daily
+    if target_dates:
+        frame = frame.filter(pl.col("date").is_in([dt_date.fromisoformat(value) for value in target_dates]))
+    return (
+        frame.with_columns(
+            (
+                pl.col("turnover").log1p() + 0.25 * pl.col("trade_count").log1p()
+            ).alias(OUTPUT_COLUMN)
+        )
+        .sort(["date", OUTPUT_COLUMN], descending=[False, True])
+    )
 
 
 def structural_activity_proxy(rows: list[dict[str, float]]) -> list[float]:

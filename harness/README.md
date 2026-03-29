@@ -24,6 +24,12 @@ python3 harness/run_verified_factor.py \
   --dates 2026-03-13
 ```
 
+Build local daily aggregate cache:
+
+```bash
+python3 harness/build_daily_agg.py --table all --year 2026
+```
+
 Progress view:
 
 ```bash
@@ -70,6 +76,12 @@ Fixed pre-eval:
 python3 harness/run_pre_eval.py \
   --factor structural_activity_proxy \
   --notes "fixed forward-return pre-eval"
+```
+
+Export shared labels:
+
+```bash
+python3 harness/export_forward_labels.py --year 2026
 ```
 
 Fixed autoresearch cycle:

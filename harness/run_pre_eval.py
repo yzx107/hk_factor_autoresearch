@@ -22,6 +22,7 @@ from evaluation.pre_eval import (
     build_pre_eval_summary,
 )
 from harness.compare_factors import read_experiment_log
+from harness.daily_agg import load_daily_agg_lazy, missing_daily_agg_dates
 from harness.verified_reader import load_verified_lazy, next_available_dates
 
 PRE_EVAL_LOG = ROOT / "registry" / "pre_eval_log.tsv"
@@ -138,12 +139,23 @@ def run_pre_eval_for_factor(
     else:
         next_map = next_available_dates("verified_trades", factor_dates, step=1)
         label_dates = sorted(set(factor_dates) | set(next_map.values()))
-        trades = load_verified_lazy(
-            "verified_trades",
-            label_dates,
-            ["date", "source_file", "Time", "Price", "row_num_in_file"],
-        )
-        close_like = build_close_like_frame(trades)
+        if not missing_daily_agg_dates("verified_trades_daily", label_dates):
+            close_like = (
+                load_daily_agg_lazy(
+                    "verified_trades_daily",
+                    label_dates,
+                    ["date", "instrument_key", "close_like_price"],
+                )
+                .collect()
+                .sort(["date", "instrument_key"])
+            )
+        else:
+            trades = load_verified_lazy(
+                "verified_trades",
+                label_dates,
+                ["date", "source_file", "Time", "Price", "row_num_in_file"],
+            )
+            close_like = build_close_like_frame(trades)
         labels_df = build_forward_return_labels(close_like, next_date_map=next_map, label_name=LABEL_NAME)
     summary = build_pre_eval_summary(factor_df, score_column=score_column, labels_df=labels_df, label_column=LABEL_NAME)
 

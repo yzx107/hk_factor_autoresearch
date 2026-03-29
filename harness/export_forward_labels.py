@@ -16,6 +16,7 @@ if str(ROOT) not in sys.path:
 
 from evaluation.pre_eval import LABEL_NAME, build_close_like_frame, build_forward_return_labels
 from factor_defs.change_support import collect_daily_frames_from_loader
+from harness.daily_agg import load_daily_agg_lazy, missing_daily_agg_dates
 from harness.verified_reader import available_dates, load_verified_lazy, next_available_dates
 
 RUN_ROOT = ROOT / "runs"
@@ -32,12 +33,23 @@ def export_forward_labels(*, year: str, notes: str = "") -> tuple[str, dict[str,
     dates = available_dates("verified_trades", year)
     next_map = next_available_dates("verified_trades", dates, step=1)
     label_dates = sorted(set(dates) | set(next_map.values()))
-    close_like = collect_daily_frames_from_loader(
-        table_loader=lambda load_dates, columns: load_verified_lazy("verified_trades", load_dates, columns),
-        source_columns=["date", "source_file", "Time", "Price", "row_num_in_file"],
-        daily_frame_builder=build_close_like_frame,
-        dates=label_dates,
-    )
+    if not missing_daily_agg_dates("verified_trades_daily", label_dates):
+        close_like = (
+            load_daily_agg_lazy(
+                "verified_trades_daily",
+                label_dates,
+                ["date", "instrument_key", "close_like_price"],
+            )
+            .collect()
+            .sort(["date", "instrument_key"])
+        )
+    else:
+        close_like = collect_daily_frames_from_loader(
+            table_loader=lambda load_dates, columns: load_verified_lazy("verified_trades", load_dates, columns),
+            source_columns=["date", "source_file", "Time", "Price", "row_num_in_file"],
+            daily_frame_builder=build_close_like_frame,
+            dates=label_dates,
+        )
     labels_df = build_forward_return_labels(close_like, next_date_map=next_map, label_name=LABEL_NAME)
 
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
