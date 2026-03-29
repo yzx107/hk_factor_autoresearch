@@ -94,6 +94,35 @@ def next_available_dates(
     return mapping
 
 
+def previous_available_dates(
+    table_name: str,
+    dates: list[str],
+    *,
+    step: int = 1,
+) -> dict[str, str]:
+    if step < 1:
+        raise ValueError("step must be >= 1")
+    if not dates:
+        return {}
+
+    per_year: dict[str, list[str]] = {}
+    for date in dates:
+        per_year.setdefault(_year_from_date(date), []).append(date)
+
+    mapping: dict[str, str] = {}
+    for year, year_dates in per_year.items():
+        available = available_dates(table_name, year)
+        index = {date: idx for idx, date in enumerate(available)}
+        for date in year_dates:
+            pos = index.get(date)
+            if pos is None:
+                continue
+            prev_pos = pos - step
+            if prev_pos >= 0:
+                mapping[date] = available[prev_pos]
+    return mapping
+
+
 def instrument_key_expr() -> pl.Expr:
     return pl.col("source_file").str.extract(r"([^/]+)\.csv$", 1).alias("instrument_key")
 

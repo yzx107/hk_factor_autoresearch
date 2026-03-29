@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 from dataclasses import asdict
 import importlib
+import inspect
 import json
 from pathlib import Path
 import sys
@@ -18,7 +19,7 @@ if str(ROOT) not in sys.path:
 from evaluation.diagnostics import build_signal_diagnostics
 from gatekeeper.gate_a_data import load_research_card
 from harness.run_phase_a import build_record, append_experiment_log, append_lineage
-from harness.verified_reader import load_verified_lazy
+from harness.verified_reader import load_verified_lazy, previous_available_dates
 
 
 def parse_args() -> argparse.Namespace:
@@ -45,6 +46,26 @@ def _required_columns(card: dict[str, object]) -> list[str]:
     fields = [str(field) for field in card["required_fields"]]
     required = ["date", "source_file"] + fields
     return list(dict.fromkeys(required))
+
+
+def _compute_context_dates(
+    *,
+    table_name: str,
+    requested_dates: list[str],
+    lookback_steps: int,
+) -> tuple[list[str], dict[str, str]]:
+    if lookback_steps <= 0:
+        return requested_dates, {}
+    previous_map = previous_available_dates(table_name, requested_dates, step=lookback_steps)
+    context_dates = sorted(set(requested_dates) | set(previous_map.values()))
+    return context_dates, previous_map
+
+
+def _build_partition_loader(table_name: str):
+    def _load(dates: list[str], columns: list[str]) -> pl.LazyFrame:
+        return load_verified_lazy(table_name, dates, columns)
+
+    return _load
 
 
 def run_verified_factor_experiment(
@@ -77,8 +98,30 @@ def run_verified_factor_experiment(
     module = _load_factor_module(factor_name)
     table_name = getattr(module, "INPUT_TABLE")
     score_column = getattr(module, "OUTPUT_COLUMN")
-    lazy_frame = load_verified_lazy(table_name, dates, _required_columns(card))
-    signal_lazy = module.compute_signal(lazy_frame)
+    lookback_steps = int(getattr(module, "LOOKBACK_STEPS", 0))
+    required_columns = _required_columns(card)
+    load_dates, previous_date_map = _compute_context_dates(
+        table_name=table_name,
+        requested_dates=dates,
+        lookback_steps=lookback_steps,
+    )
+    signal_lazy: pl.LazyFrame
+    if hasattr(module, "compute_signal_from_loader"):
+        signal_lazy = module.compute_signal_from_loader(
+            table_loader=_build_partition_loader(table_name),
+            target_dates=dates,
+            previous_date_map=previous_date_map,
+        )
+    else:
+        lazy_frame = load_verified_lazy(table_name, load_dates, required_columns)
+        compute_signal = module.compute_signal
+        params = inspect.signature(compute_signal).parameters
+        kwargs: dict[str, object] = {}
+        if "target_dates" in params:
+            kwargs["target_dates"] = dates
+        if "previous_date_map" in params:
+            kwargs["previous_date_map"] = previous_date_map
+        signal_lazy = compute_signal(lazy_frame, **kwargs)
     signal_df = signal_lazy.collect()
     diagnostics = build_signal_diagnostics(signal_df, score_column=score_column)
 
@@ -98,7 +141,8 @@ def run_verified_factor_experiment(
         "table_name": table_name,
         "score_column": score_column,
         "dates": dates,
-        "input_columns": _required_columns(card),
+        "loaded_dates": load_dates,
+        "input_columns": required_columns,
         "output_rows": signal_df.height,
         "output_columns": signal_df.columns,
         "artifacts": {

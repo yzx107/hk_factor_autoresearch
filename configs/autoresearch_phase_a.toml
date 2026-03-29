@@ -25,3 +25,19 @@ card = "research_cards/examples/order_lifecycle_churn_2026.md"
 [[candidates]]
 factor = "close_vwap_gap_intensity"
 card = "research_cards/examples/close_vwap_gap_intensity_2026.md"
+
+[[candidates]]
+factor = "structural_activity_change"
+card = "research_cards/examples/structural_activity_change_2026.md"
+
+[[candidates]]
+factor = "avg_trade_notional_bias_change"
+card = "research_cards/examples/avg_trade_notional_bias_change_2026.md"
+
+[[candidates]]
+factor = "order_lifecycle_churn_change"
+card = "research_cards/examples/order_lifecycle_churn_change_2026.md"
+
+[[candidates]]
+factor = "close_vwap_gap_intensity_change"
+card = "research_cards/examples/close_vwap_gap_intensity_change_2026.md"
