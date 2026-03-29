@@ -112,14 +112,20 @@ def _append_pre_eval_log(
         )
 
 
-def main() -> int:
-    args = parse_args()
+def run_pre_eval_for_factor(
+    *,
+    factor_name: str,
+    experiment_id: str = "",
+    notes: str = "",
+) -> tuple[str, dict[str, object], Path]:
     entries = read_experiment_log()
-    entry = _find_experiment(entries, args.factor, args.experiment)
+    entry = _find_experiment(entries, factor_name, experiment_id)
     run_summary = _load_run_summary(entry)
     score_column = str(run_summary["score_column"])
     factor_df = _load_factor_output(entry)
-    factor_dates = sorted({value.isoformat() if hasattr(value, "isoformat") else str(value) for value in factor_df["date"]})
+    factor_dates = sorted(
+        {value.isoformat() if hasattr(value, "isoformat") else str(value) for value in factor_df["date"]}
+    )
 
     next_map = next_available_dates("verified_trades", factor_dates, step=1)
     label_dates = sorted(set(factor_dates) | set(next_map.values()))
@@ -146,7 +152,7 @@ def main() -> int:
         "experiment_id": entry["experiment_id"],
         "factor_name": entry["factor_name"],
         "score_column": score_column,
-        "notes": args.notes,
+        "notes": notes,
         **summary,
     }
     summary_path.write_text(json.dumps(payload, indent=2, default=str), encoding="utf-8")
@@ -162,14 +168,24 @@ def main() -> int:
         score_column=score_column,
         summary=summary,
         summary_path=summary_path,
+        notes=notes,
+    )
+    return pre_eval_id, payload, summary_path
+
+
+def main() -> int:
+    args = parse_args()
+    pre_eval_id, payload, _ = run_pre_eval_for_factor(
+        factor_name=args.factor,
+        experiment_id=args.experiment,
         notes=args.notes,
     )
 
     print(
-        f"{pre_eval_id} factor={entry['factor_name']} "
-        f"evaluated_dates={summary['labeled_date_count']} "
-        f"joined_rows={summary['joined_rows']} "
-        f"mean_abs_rank_ic={summary['mean_abs_rank_ic']}"
+        f"{pre_eval_id} factor={payload['factor_name']} "
+        f"evaluated_dates={payload['labeled_date_count']} "
+        f"joined_rows={payload['joined_rows']} "
+        f"mean_abs_rank_ic={payload['mean_abs_rank_ic']}"
     )
     return 0
 

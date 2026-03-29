@@ -15,6 +15,7 @@ LINEAGE_PATH = ROOT / "registry" / "lineage.json"
 COMPARISON_LOG = ROOT / "registry" / "comparison_log.tsv"
 PRE_EVAL_LOG = ROOT / "registry" / "pre_eval_log.tsv"
 SCOREBOARD_LOG = ROOT / "registry" / "scoreboard_log.tsv"
+CYCLE_LOG = ROOT / "registry" / "autoresearch_cycle_log.tsv"
 
 
 @dataclass(frozen=True)
@@ -28,6 +29,7 @@ class StatusSnapshot:
     latest_comparison: dict[str, Any] | None
     latest_pre_eval: dict[str, Any] | None
     latest_scoreboard: dict[str, Any] | None
+    latest_cycle: dict[str, Any] | None
 
 
 def read_experiment_log(path: Path = EXPERIMENT_LOG) -> list[dict[str, str]]:
@@ -68,6 +70,14 @@ def read_pre_eval_log(path: Path = PRE_EVAL_LOG) -> list[dict[str, str]]:
         return list(reader)
 
 
+def read_cycle_log(path: Path = CYCLE_LOG) -> list[dict[str, str]]:
+    if not path.exists():
+        return []
+    with path.open("r", encoding="utf-8", newline="") as handle:
+        reader = csv.DictReader(handle, delimiter="\t")
+        return list(reader)
+
+
 def _latest_data_run(entries: list[dict[str, str]]) -> dict[str, Any] | None:
     for entry in reversed(entries):
         summary_path = Path(entry["run_dir"]) / "data_run_summary.json"
@@ -96,6 +106,8 @@ def build_status_snapshot(entries: list[dict[str, str]]) -> StatusSnapshot:
     latest_pre_eval = pre_evals[-1] if pre_evals else None
     scoreboards = read_scoreboard_log()
     latest_scoreboard = scoreboards[-1] if scoreboards else None
+    cycles = read_cycle_log()
+    latest_cycle = cycles[-1] if cycles else None
     return StatusSnapshot(
         experiment_count=len(entries),
         keep_count=keep_count,
@@ -106,6 +118,7 @@ def build_status_snapshot(entries: list[dict[str, str]]) -> StatusSnapshot:
         latest_comparison=latest_comparison,
         latest_pre_eval=latest_pre_eval,
         latest_scoreboard=latest_scoreboard,
+        latest_cycle=latest_cycle,
     )
 
 
@@ -171,6 +184,15 @@ def _text_status(snapshot: StatusSnapshot, entries: list[dict[str, str]], lineag
             f"factors={scoreboard['factor_count']} "
             f"comparisons={scoreboard['comparison_count']}"
         )
+    if snapshot.latest_cycle:
+        cycle = snapshot.latest_cycle
+        lines.append(
+            "latest_cycle "
+            f"id={cycle['cycle_id']} "
+            f"best_factor={cycle['best_factor']} "
+            f"best_action={cycle['best_action']} "
+            f"scoreboard={cycle['scoreboard_id']}"
+        )
     if entries:
         lines.append("recent")
         for entry in entries[-limit:]:
@@ -192,6 +214,7 @@ def main() -> int:
     comparisons = read_comparison_log()
     pre_evals = read_pre_eval_log()
     scoreboards = read_scoreboard_log()
+    cycles = read_cycle_log()
     if args.json:
         print(
             json.dumps(
@@ -206,11 +229,13 @@ def main() -> int:
                         "latest_comparison": snapshot.latest_comparison,
                         "latest_pre_eval": snapshot.latest_pre_eval,
                         "latest_scoreboard": snapshot.latest_scoreboard,
+                        "latest_cycle": snapshot.latest_cycle,
                     },
                     "lineage": lineage,
                     "comparisons": comparisons[-args.limit :],
                     "pre_evals": pre_evals[-args.limit :],
                     "scoreboards": scoreboards[-args.limit :],
+                    "cycles": cycles[-args.limit :],
                     "recent": entries[-args.limit :],
                 },
                 indent=2,

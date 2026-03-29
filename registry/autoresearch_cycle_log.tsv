@@ -1,0 +1,2 @@
+cycle_id	created_at	config_version	factor_count	experiment_count	pre_eval_count	comparison_count	scoreboard_id	best_factor	best_action	summary_path	notes
+auto_20260329T060324Z	2026-03-29T06:03:24.588179+00:00	autoresearch_phase_a_v1	4	4	4	6	score_20260329T060324Z	close_vwap_gap_intensity	consider_inverse	/Users/yxin/AI_Workstation/hk_factor_autoresearch/runs/auto_20260329T060324Z/cycle_summary.json	phase a autoresearch cycle

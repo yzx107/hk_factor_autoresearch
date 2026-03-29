@@ -72,6 +72,13 @@ python3 harness/run_pre_eval.py \
   --notes "fixed forward-return pre-eval"
 ```
 
+Fixed autoresearch cycle:
+
+```bash
+python3 harness/autoresearch_cycle.py \
+  --notes "daily cycle"
+```
+
 Each scoreboard writes:
 - `scoreboard_summary.json`
 - `scoreboard_report.md`
@@ -79,6 +86,10 @@ Each scoreboard writes:
 Each pre-eval writes:
 - `pre_eval_summary.json`
 - `label_preview.json`
+
+Each cycle writes:
+- `cycle_summary.json`
+- `cycle_report.md`
 
 Why this exists:
 - keep experiment setup comparable

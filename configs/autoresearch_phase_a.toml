@@ -1,0 +1,25 @@
+version = "autoresearch_phase_a_v1"
+name = "Phase A fixed autoresearch cycle"
+owner = "agent"
+anchor_dates = ["2026-01-05", "2026-02-24", "2026-03-13"]
+
+[selection]
+min_abs_rank_ic_keep = 0.05
+min_abs_rank_ic_review = 0.02
+max_mean_abs_peer_corr = 0.50
+
+[[candidates]]
+factor = "structural_activity_proxy"
+card = "research_cards/examples/structural_activity_proxy_2026.md"
+
+[[candidates]]
+factor = "avg_trade_notional_bias"
+card = "research_cards/examples/avg_trade_notional_bias_2026.md"
+
+[[candidates]]
+factor = "order_lifecycle_churn"
+card = "research_cards/examples/order_lifecycle_churn_2026.md"
+
+[[candidates]]
+factor = "close_vwap_gap_intensity"
+card = "research_cards/examples/close_vwap_gap_intensity_2026.md"

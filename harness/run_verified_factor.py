@@ -47,35 +47,37 @@ def _required_columns(card: dict[str, object]) -> list[str]:
     return list(dict.fromkeys(required))
 
 
-def main() -> int:
-    args = parse_args()
-    card_path = ROOT / args.card
+def run_verified_factor_experiment(
+    *,
+    card_path: Path,
+    factor_name: str,
+    dates: list[str],
+    owner: str,
+    notes: str,
+    parent_experiment_id: str = "",
+    allow_with_caveat: bool = False,
+) -> tuple[object, dict[str, object] | None]:
     card = load_research_card(card_path)
 
     record, artifact = build_record(
         card_path=card_path,
-        factor_name=args.factor,
-        owner=args.owner,
-        notes=args.notes,
-        parent_experiment_id=args.parent,
+        factor_name=factor_name,
+        owner=owner,
+        notes=notes,
+        parent_experiment_id=parent_experiment_id,
     )
     append_experiment_log(record)
     append_lineage(record, artifact)
 
     if record.gate_a_decision == "fail":
-        print(f"{record.experiment_id} decision=fail status=discard factor={args.factor}")
-        return 1
-    if record.gate_a_decision == "allow_with_caveat" and not args.allow_with_caveat:
-        print(
-            f"{record.experiment_id} decision=allow_with_caveat status=manual_review "
-            f"factor={args.factor} data_run=skipped"
-        )
-        return 0
+        return record, None
+    if record.gate_a_decision == "allow_with_caveat" and not allow_with_caveat:
+        return record, None
 
-    module = _load_factor_module(args.factor)
+    module = _load_factor_module(factor_name)
     table_name = getattr(module, "INPUT_TABLE")
     score_column = getattr(module, "OUTPUT_COLUMN")
-    lazy_frame = load_verified_lazy(table_name, args.dates, _required_columns(card))
+    lazy_frame = load_verified_lazy(table_name, dates, _required_columns(card))
     signal_lazy = module.compute_signal(lazy_frame)
     signal_df = signal_lazy.collect()
     diagnostics = build_signal_diagnostics(signal_df, score_column=score_column)
@@ -92,10 +94,10 @@ def main() -> int:
     diagnostics_path.write_text(json.dumps(diagnostics, indent=2, default=str), encoding="utf-8")
     summary = {
         "experiment_id": record.experiment_id,
-        "factor_name": args.factor,
+        "factor_name": factor_name,
         "table_name": table_name,
         "score_column": score_column,
-        "dates": args.dates,
+        "dates": dates,
         "input_columns": _required_columns(card),
         "output_rows": signal_df.height,
         "output_columns": signal_df.columns,
@@ -106,10 +108,34 @@ def main() -> int:
         },
     }
     summary_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
+    return record, summary
+
+
+def main() -> int:
+    args = parse_args()
+    record, summary = run_verified_factor_experiment(
+        card_path=ROOT / args.card,
+        factor_name=args.factor,
+        dates=args.dates,
+        owner=args.owner,
+        notes=args.notes,
+        parent_experiment_id=args.parent,
+        allow_with_caveat=args.allow_with_caveat,
+    )
+
+    if record.gate_a_decision == "fail":
+        print(f"{record.experiment_id} decision=fail status=discard factor={args.factor}")
+        return 1
+    if record.gate_a_decision == "allow_with_caveat" and not args.allow_with_caveat:
+        print(
+            f"{record.experiment_id} decision=allow_with_caveat status=manual_review "
+            f"factor={args.factor} data_run=skipped"
+        )
+        return 0
 
     print(
         f"{record.experiment_id} decision={record.gate_a_decision} "
-        f"status={record.status} factor={args.factor} output_rows={signal_df.height}"
+        f"status={record.status} factor={args.factor} output_rows={summary['output_rows'] if summary else 0}"
     )
     return 0
 

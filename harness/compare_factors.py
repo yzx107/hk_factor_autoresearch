@@ -203,24 +203,30 @@ def append_comparison_log(
         )
 
 
-def main() -> int:
-    args = parse_args()
+def run_factor_comparison(
+    *,
+    left_factor: str,
+    right_factor: str,
+    left_experiment: str = "",
+    right_experiment: str = "",
+    top_n: int = 20,
+    notes: str = "",
+) -> tuple[str, dict[str, Any], Path]:
     entries = read_experiment_log()
-    left_entry = _resolve_experiment(entries, args.left_factor, args.left_experiment)
-    right_entry = _resolve_experiment(entries, args.right_factor, args.right_experiment)
-
+    left_entry = _resolve_experiment(entries, left_factor, left_experiment)
+    right_entry = _resolve_experiment(entries, right_factor, right_experiment)
     created_at = datetime.now(timezone.utc).isoformat()
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    comparison_id = f"cmp_{stamp}_{args.left_factor}__{args.right_factor}"
+    comparison_id = f"cmp_{stamp}_{left_factor}__{right_factor}"
     run_dir = RUN_ROOT / comparison_id
     run_dir.mkdir(parents=True, exist_ok=True)
     summary_path = run_dir / "comparison_summary.json"
 
-    comparison = build_comparison_summary(left_entry, right_entry, top_n=args.top_n)
+    comparison = build_comparison_summary(left_entry, right_entry, top_n=top_n)
     payload = {
         "comparison_id": comparison_id,
         "created_at": created_at,
-        "notes": args.notes,
+        "notes": notes,
         **comparison,
     }
     summary_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
@@ -232,12 +238,25 @@ def main() -> int:
         common_dates=comparison["common_dates"],
         common_rows=comparison["common_rows"],
         summary_path=summary_path,
+        notes=notes,
+    )
+    return comparison_id, payload, summary_path
+
+
+def main() -> int:
+    args = parse_args()
+    comparison_id, payload, _ = run_factor_comparison(
+        left_factor=args.left_factor,
+        right_factor=args.right_factor,
+        left_experiment=args.left_experiment,
+        right_experiment=args.right_experiment,
+        top_n=args.top_n,
         notes=args.notes,
     )
 
     print(
-        f"{comparison_id} left={left_entry['factor_name']} right={right_entry['factor_name']} "
-        f"common_rows={comparison['common_rows']}"
+        f"{comparison_id} left={payload['left']['factor_name']} right={payload['right']['factor_name']} "
+        f"common_rows={payload['common_rows']}"
     )
     return 0
 

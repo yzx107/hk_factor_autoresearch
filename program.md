@@ -70,10 +70,11 @@ Default narrow mutable surface for one experiment:
 4. Agent runs the Phase A harness.
 5. Agent runs the fixed pre-eval on any materialized factor output.
 6. Agent rebuilds comparison and scoreboard artifacts on the same frozen rules.
-7. Harness records `pass`, `allow_with_caveat`, or `fail`.
-8. `fail` means discard the candidate revision.
-9. `allow_with_caveat` means manual review, not auto-promotion.
-10. `pass` means the idea may proceed to the next controlled stage.
+7. Agent runs the fixed autoresearch cycle over the configured inventory.
+8. Harness records `pass`, `allow_with_caveat`, or `fail`.
+9. `fail` means discard the candidate revision.
+10. `allow_with_caveat` means manual review, not auto-promotion.
+11. `pass` means the idea may proceed to the next controlled stage.
 
 ## Token Discipline
 

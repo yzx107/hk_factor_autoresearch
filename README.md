@@ -22,8 +22,10 @@ What is here now:
 - `research_cards/` for the card template and smoke examples
 - `gatekeeper/gate_a_data.py` for minimal admissibility checks
 - `configs/baseline_phase_a.toml` for a frozen baseline config
+- `configs/autoresearch_phase_a.toml` for the fixed candidate inventory
 - `harness/run_phase_a.py` for the minimal autoresearch-style loop
 - `harness/run_pre_eval.py` for fixed forward-return pre-eval
+- `harness/autoresearch_cycle.py` for the end-to-end cycle runner
 - `registry/` for append-only experiment skeletons
 
 What is not here:
@@ -83,6 +85,12 @@ python3 harness/run_pre_eval.py \
   --factor structural_activity_proxy
 ```
 
+Run one full autoresearch cycle:
+
+```bash
+python3 harness/autoresearch_cycle.py
+```
+
 The scoreboard also writes:
 
 ```text
@@ -99,4 +107,10 @@ Each fixed pre-eval run writes:
 
 ```text
 runs/<pre_eval_id>/pre_eval_summary.json
+```
+
+Each autoresearch cycle writes:
+
+```text
+runs/<cycle_id>/cycle_summary.json
 ```
