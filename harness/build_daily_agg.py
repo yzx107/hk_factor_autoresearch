@@ -85,16 +85,30 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--year", required=True, help="Verified year like 2026.")
     parser.add_argument("--dates", nargs="*", default=[], help="Optional explicit dates to build.")
+    parser.add_argument("--date-from", default="", help="Optional lower date bound like 2026-01-02.")
+    parser.add_argument("--date-to", default="", help="Optional upper date bound like 2026-01-30.")
     parser.add_argument("--force", action="store_true", help="Overwrite existing cache files.")
     parser.add_argument("--notes", default="", help="Short build note.")
     return parser.parse_args()
 
 
-def _resolve_dates(daily_table: str, year: str, explicit_dates: list[str]) -> list[str]:
+def _resolve_dates(
+    daily_table: str,
+    year: str,
+    explicit_dates: list[str],
+    *,
+    date_from: str,
+    date_to: str,
+) -> list[str]:
     if explicit_dates:
         return explicit_dates
     source_table = SOURCE_TABLE_BY_DAILY_TABLE[daily_table]
-    return available_dates(source_table, year)
+    dates = available_dates(source_table, year)
+    if date_from:
+        dates = [date for date in dates if date >= date_from]
+    if date_to:
+        dates = [date for date in dates if date <= date_to]
+    return dates
 
 
 def build_daily_agg_for_date(
@@ -168,7 +182,13 @@ def main() -> int:
     )
     outputs: list[tuple[str, dict[str, object], Path]] = []
     for table_name in tables:
-        dates = _resolve_dates(table_name, args.year, args.dates)
+        dates = _resolve_dates(
+            table_name,
+            args.year,
+            args.dates,
+            date_from=args.date_from,
+            date_to=args.date_to,
+        )
         outputs.append(
             build_daily_agg_table(
                 daily_table=table_name,
