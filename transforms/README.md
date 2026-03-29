@@ -1,13 +1,13 @@
 # Transforms
 
-Keep only reusable signal transforms here.
+这里只放可复用的信号变换。
 
-Allowed:
+允许：
 - scaling
 - clipping
 - normalization
-- neutralization helpers
+- neutralization helper
 
-Not allowed:
-- changing backtest rules
-- redefining upstream field semantics
+不允许：
+- 改 backtest 规则
+- 重定义上游字段语义

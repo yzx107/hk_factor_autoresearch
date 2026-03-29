@@ -1,89 +1,86 @@
 # Program
 
-## Harness Law
+## Harness 法则
 
-This repo follows the `autoresearch` harness law:
-- the experiment object may change
-- the evaluation harness may not drift during ordinary research
+这个 repo 遵守 `autoresearch` 的 harness 法则：
+- 实验对象可以变
+- 普通研究中的评估 harness 不可以漂移
 
-In practice:
-- humans evolve `program.md`
-- agents work only inside the narrow mutable surface
-- all experiments run through the same harness and append-only registry
+落地到本项目：
+- 人主要维护 `program.md`
+- agent 只在狭窄的 mutable surface 内工作
+- 所有实验都要走同一套 harness 和 append-only registry
 
-## Immutable Layer 0
+## 不可变 Layer 0
 
-These surfaces are frozen until explicit change control:
+以下面向在显式变更控制前都视为冻结：
 - `data_contracts/`
 - `backtest_engine/`
 - `evaluation/`
 - `gatekeeper/`
 - `configs/baseline_phase_a.toml`
 - `harness/`
-- `registry/` schemas
+- `registry/` 的 schema
 
-Phase A boundary inherited from upstream `Hshare_Lab_v2`:
+继承自上游 `Hshare_Lab_v2` 的 Phase A 边界：
 - `2025 = coarse_only`
-- `2026 = fine_ok`, still field-semantic constrained
-- `TradeDir`: `2025 = stable_code_structure_only`
-- `TradeDir`: `2026 = candidate_directional_signal_only`
-- `BrokerNo`: both years = `reference_lookup_only`
-- `Level`, `VolumePre`, and queue semantics are blocked
-- `Type`, `Ext`, and `OrderType` are caveat-only vendor codes, never default
-  truth
-- this repo consumes upstream verified and admissibility outputs read-only
+- `2026 = fine_ok`，但仍受字段语义约束
+- `TradeDir`：`2025 = stable_code_structure_only`
+- `TradeDir`：`2026 = candidate_directional_signal_only`
+- `BrokerNo`：两年都只能 `reference_lookup_only`
+- `Level`、`VolumePre` 和 queue semantics 一律阻断
+- `Type`、`Ext`、`OrderType` 只是带 caveat 的 vendor code，不能当默认真值
+- 本 repo 只读消费上游 verified 和 admissibility 输出
 
-## Agent May Change
+## Agent 可以改什么
 
-- add or edit `research_cards/`
-- add or edit `factor_defs/`, `transforms/`, and `combos/`
-- add derived run configs under `configs/` without changing the frozen baseline
-- append experiment rows and lineage entries
+- 新增或修改 `research_cards/`
+- 新增或修改 `factor_defs/`、`transforms/`、`combos/`
+- 在 `configs/` 下添加派生 run 配置，但不能改冻结 baseline
+- 追加 experiment rows 和 lineage entries
 
-Default narrow mutable surface for one experiment:
-- one research card
-- one factor definition or one small transform/combo change
-- no harness edits in the same experiment branch
+单次实验默认只允许改很窄的一层：
+- 一张 research card
+- 一个 factor definition，或一次很小的 transform/combo 改动
+- 同一轮实验里不改 harness
 
-## Agent May Not Change
+## Agent 不可以改什么
 
-- anything inside `/Users/yxin/AI_Workstation/Hshare_Lab_v2`
-- data contracts to fit a factor
-- evaluator, metrics, or cost rules to rescue a weak result
-- gate policy to waive blocked semantics
-- experiment history by deleting failed attempts
+- `/Users/yxin/AI_Workstation/Hshare_Lab_v2` 里的任何内容
+- 为了配合某个因子去改 data contract
+- 为了挽救弱结果去改 evaluator、metrics 或 cost rules
+- 为了放行被阻断语义去改 gate policy
+- 通过删除失败记录来改写实验历史
 
-## Promotion Discipline
+## 晋级纪律
 
-1. Write a research card before implementation.
-2. Run Gate A before any backtest claim.
-3. Run the fixed pre-eval harness before ranking candidates.
-4. `allow_with_caveat` stays manual-review gated.
-5. Failed experiments remain in the registry.
-6. Renaming the same idea does not reset lineage.
+1. 先写 research card，再写实现。
+2. 任何回测或收益表述前先过 Gate A。
+3. 候选排序前先跑固定 pre-eval harness。
+4. `allow_with_caveat` 仍然必须人工复核。
+5. 失败实验必须保留在 registry 中。
+6. 给同一 idea 换名字不等于重置 lineage。
 
-## Autoresearch Loop
+## Autoresearch 循环
 
-1. Human updates `program.md` when the research policy changes.
-2. Agent proposes one bounded experiment via a research card.
-3. Agent edits only the narrow mutable surface for that experiment.
-4. Agent runs the Phase A harness.
-5. Agent runs the fixed pre-eval on any materialized factor output.
-Pre-eval is allowed to use fixed non-linear metrics such as normalized mutual
-information, but only under frozen binning and label rules.
-6. Agent rebuilds comparison and scoreboard artifacts on the same frozen rules.
-7. Agent runs the fixed autoresearch cycle over the configured inventory.
-8. Harness records `pass`, `allow_with_caveat`, or `fail`.
-9. `fail` means discard the candidate revision.
-10. `allow_with_caveat` means manual review, not auto-promotion.
-11. `pass` means the idea may proceed to the next controlled stage.
+1. 当研究政策变化时，由人更新 `program.md`。
+2. agent 通过 research card 提出一条有边界的实验。
+3. agent 只改这条实验允许变动的窄表面。
+4. agent 跑 Phase A harness。
+5. agent 对已经 materialize 的因子输出跑固定 pre-eval。
+固定 pre-eval 可以包含 normalized mutual information 这类非线性指标，
+但前提是分箱规则和 label 规则都被冻结。
+6. agent 在同一套冻结规则下重建 comparison 和 scoreboard。
+7. agent 对配置中的候选池运行固定 autoresearch cycle。
+8. harness 记录 `pass`、`allow_with_caveat` 或 `fail`。
+9. `fail` 表示丢弃该候选修订。
+10. `allow_with_caveat` 表示进入人工复核，不是自动晋级。
+11. `pass` 只表示可以进入下一受控阶段。
 
-## Token Discipline
+## Token 纪律
 
-To reduce token burn:
-- read only `program.md`, the baseline config, the active card, and the last few
-  registry rows before acting
-- prefer card front matter and compact machine-readable output over long prose
-- send long command output to `runs/` artifacts instead of pasting it back into
-  chat
-- use the harness runner's compact summary as the default status report
+为了降低 token 消耗：
+- 行动前只读 `program.md`、baseline config、当前 active card，以及最近几条 registry
+- 优先使用 card front matter 和紧凑的 machine-readable 输出，而不是长篇 prose
+- 长命令输出写入 `runs/` artifact，不把整段日志贴回对话
+- 默认用 harness runner 的 compact summary 做状态汇报

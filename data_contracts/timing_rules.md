@@ -1,29 +1,26 @@
 # Timing Rules
 
-Upstream anchors:
+上游锚点：
 - `/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Audits/research_admissibility_matrix.md`
 - `/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/verified_admission_matrix_2026-03-18.md`
 - `/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/tradedir_validation_2025.md`
 - `/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/tradedir_validation_2026.md`
 
-Year grades:
+年份等级：
 - `2025 = coarse_only`
 - `2026 = fine_ok`
 
-Hard rules:
-- `2025` may do coverage, same-second sanity, event-count lifecycle shape, and
-  coarse post-trade windows only.
-- `2025` may not do precise lag, latency, queue, strict ordering, or execution
-  realism studies.
-- `2026` may do fine timing only when the field semantics used are still within
-  verified or caveated scope.
-- queue and depth semantics stay blocked in both years.
-- signed-side and aggressor truth stay blocked in both years.
+硬规则：
+- `2025` 只允许做 coverage、same-second sanity、按事件数统计的生命周期形态，以及粗粒度 post-trade 窗口。
+- `2025` 不允许做 precise lag、latency、queue、strict ordering 或 execution realism 研究。
+- `2026` 只有在所用字段语义仍处于 verified 或 caveated 范围内时，才允许做 fine timing。
+- queue 和 depth semantics 在两年中都保持阻断。
+- signed-side 和 aggressor truth 在两年中都保持阻断。
 
-Field-specific timing boundary:
+字段级 timing 边界：
 - `TradeDir`: `2025 = stable_code_structure_only`
 - `TradeDir`: `2026 = candidate_directional_signal_only`
-- `TradeDir` is never confirmed signed side.
-- `BrokerNo` is `reference_lookup_only` in both years.
-- `Level` and `VolumePre` stay blocked.
-- `Type`, `Ext`, and `OrderType` remain vendor codes with manual-review caveat.
+- `TradeDir` 永远不能当 confirmed signed side。
+- `BrokerNo` 在两年里都只能 `reference_lookup_only`。
+- `Level` 和 `VolumePre` 持续阻断。
+- `Type`、`Ext`、`OrderType` 仍然是需要人工复核 caveat 的 vendor code。

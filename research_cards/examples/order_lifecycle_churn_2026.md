@@ -1,6 +1,6 @@
 +++
 card_id = "rc_20260329_order_lifecycle_churn_2026"
-name = "Order Lifecycle Churn 2026"
+name = "订单生命周期 churn（Order Lifecycle Churn 2026）"
 owner = "codex"
 status = "draft"
 years = ["2026"]
@@ -8,11 +8,11 @@ universe = "phase_a_core"
 holding_horizon = "30m_to_1d"
 research_modules = ["order_lifecycle_shape_by_event_count"]
 required_fields = ["date", "source_file", "OrderId", "Price", "Volume"]
-hypothesis = "Instruments with higher order-event churn per unique order may proxy for contested liquidity and short-horizon positioning pressure."
-mechanism = "Repeated structural updates around the same project-level OrderId can indicate more intense order-book negotiation without assuming unverified event semantics."
-info_boundary = "Uses only verified structural order fields plus a file-derived instrument key extracted from source_file. It relies on project-level OrderId lifecycle shape, not official native identity claims."
-failure_modes = ["Lifecycle churn is only a liquidity proxy.", "The signal is dominated by a few active ETFs or large caps.", "Project-level OrderId structure is insufficiently distinct cross-sectionally."]
-expected_risks = ["Liquidity overlap.", "Turnover overlap.", "ETF concentration."]
+hypothesis = "单个唯一订单对应更高的事件 churn，可能代理更强的流动性争夺和短周期仓位压力。"
+mechanism = "围绕同一个项目级 OrderId 的重复结构更新，可能代表更激烈的订单簿博弈，而且不需要假设未验证的事件语义。"
+info_boundary = "只使用 verified 结构性委托字段，以及从 source_file 提取的文件级 instrument key。它依赖项目级 OrderId 生命周期形态，不宣称官方原生身份。"
+failure_modes = ["生命周期 churn 可能只是流动性代理。", "信号可能被少数活跃 ETF 或大盘股主导。", "项目级 OrderId 结构在横截面上区分度不够。"]
+expected_risks = ["与流动性重叠。", "与换手重叠。", "ETF 集中。"]
 
 [timing]
 mode = "coarse_only"
@@ -32,28 +32,28 @@ Ext = "unused"
 
 ## Hypothesis
 
-High order lifecycle churn may reflect stronger competition for liquidity.
+更高的订单生命周期 churn 可能反映更强的流动性竞争。
 
 ## Mechanism
 
-The factor uses event counts per project-level `OrderId`, not event-type labels.
+这个因子使用的是项目级 `OrderId` 的事件计数，而不是事件类型标签。
 
 ## Holding Horizon
 
-Thirty minutes to one day.
+三十分钟到一天。
 
 ## Required Fields
 
-`date`, `source_file`, `OrderId`, `Price`, `Volume`
+`date`、`source_file`、`OrderId`、`Price`、`Volume`
 
 ## Info Boundary
 
-No `OrderType`, `TradeDir`, `BrokerNo`, queue, or vendor-code semantics.
+不使用 `OrderType`、`TradeDir`、`BrokerNo`、queue 或 vendor code 语义。
 
 ## Failure Modes
 
-The effect can collapse into a plain activity or liquidity exposure.
+这个效应可能退化成普通的活跃度或流动性暴露。
 
 ## Expected Risks
 
-Main risks are overlap with turnover-heavy names and ETF concentration.
+主要风险是与高换手标的重叠，以及 ETF 集中。

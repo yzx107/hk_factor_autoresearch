@@ -1,52 +1,51 @@
 # hk_factor_autoresearch
 
-This repo is a research-factory repo for Hong Kong factor work. It is not the
-data-base repo and it is not a production trading stack.
+这个 repo 是港股因子研究工厂（research factory）repo。
+它不是数据底座 repo，也不是 production 交易系统。
 
-Current scope is `Phase A / semi-auto`:
-- freeze Layer 0 boundaries
-- require research cards before implementation
-- keep a fixed backtest and evaluation interface
-- automate only Gate A data admissibility
-- keep experiment lineage append-only
-- run experiments through a lightweight harness, not ad hoc shell steps
+当前范围是 `Phase A / 半自动`：
+- 冻结 Layer 0 边界
+- 先写 research card，再落因子实现
+- 固定回测与评估接口，不在普通实验里漂移
+- 只自动化 Gate A 数据合法性检查
+- lineage 和 experiment registry 采用 append-only
+- 实验必须走固定 harness，不允许临时 shell 拼装流程
 
-Relationship to `Hshare_Lab_v2`:
-- upstream repo: `/Users/yxin/AI_Workstation/Hshare_Lab_v2`
-- this repo reads upstream verified and admissibility conclusions as read-only
-- this repo must not redefine upstream field semantics or feed conclusions back
-  into upstream Layer 0
+与 `Hshare_Lab_v2` 的关系：
+- 上游 repo：`/Users/yxin/AI_Workstation/Hshare_Lab_v2`
+- 本 repo 只读消费上游 verified 和 admissibility 结论
+- 本 repo 不得重定义上游字段语义，也不能反向改写上游 Layer 0
 
-What is here now:
-- `data_contracts/` for fixed field and timing rules
-- `research_cards/` for the card template and smoke examples
-- `gatekeeper/gate_a_data.py` for minimal admissibility checks
-- `configs/baseline_phase_a.toml` for a frozen baseline config
-- `configs/autoresearch_phase_a.toml` for the fixed candidate inventory
-- `cache/daily_agg/` for local per-day aggregate caches built from upstream verified
-- `harness/run_phase_a.py` for the minimal autoresearch-style loop
-- `harness/run_pre_eval.py` for fixed forward-return pre-eval
-- `harness/autoresearch_cycle.py` for the end-to-end cycle runner
-- `registry/` for append-only experiment skeletons
+现在 repo 里有什么：
+- `data_contracts/`：固定字段、年份、timing 边界
+- `research_cards/`：研究卡模板和 smoke 示例
+- `gatekeeper/gate_a_data.py`：最小 Gate A 合法性检查
+- `configs/baseline_phase_a.toml`：冻结 baseline 配置
+- `configs/autoresearch_phase_a.toml`：固定候选池配置
+- `cache/daily_agg/`：从上游 verified 生成的本地逐日聚合缓存
+- `harness/run_phase_a.py`：最小 autoresearch 风格实验入口
+- `harness/run_pre_eval.py`：固定 forward-return pre-eval
+- `harness/autoresearch_cycle.py`：端到端 cycle runner
+- `registry/`：append-only 实验留痕骨架
 
-Fixed pre-eval now reports:
+固定 pre-eval 当前输出：
 - rank IC
 - top-bottom spread
-- normalized mutual information (NMI) under a frozen binning rule
+- 在固定分箱规则下计算的 normalized mutual information（NMI）
 
-What is not here:
-- no multi-agent search factory
-- no production backtester
-- no heavy paper-trading stack
-- no broker alpha, signed-flow truth, or queue semantics by default
+这里没有什么：
+- 没有多 agent 搜索工厂
+- 没有 production backtester
+- 没有重型 paper-trading 系统
+- 默认不做 broker alpha、signed-flow truth、queue semantics
 
-Quick smoke:
+最小 smoke：
 
 ```bash
 python3 -m unittest tests/test_gate_a_smoke.py
 ```
 
-Minimal harness run:
+最小 harness run：
 
 ```bash
 python3 harness/run_phase_a.py \
@@ -54,7 +53,7 @@ python3 harness/run_phase_a.py \
   --factor structural_activity_proxy
 ```
 
-Real-data 2026 verified run:
+真实 `2026 verified` 数据 run：
 
 ```bash
 python3 harness/run_verified_factor.py \
@@ -63,19 +62,19 @@ python3 harness/run_verified_factor.py \
   --dates 2026-03-13
 ```
 
-Build local daily aggregate cache:
+构建本地逐日聚合缓存：
 
 ```bash
 python3 harness/build_daily_agg.py --table all --year 2026
 ```
 
-Track project progress:
+查看项目进度：
 
 ```bash
 python3 harness/status.py
 ```
 
-Compare the latest two factor runs:
+比较最近两条因子 run：
 
 ```bash
 python3 harness/compare_factors.py \
@@ -83,51 +82,51 @@ python3 harness/compare_factors.py \
   --right-factor avg_trade_notional_bias
 ```
 
-Build a candidate scoreboard:
+生成候选板：
 
 ```bash
 python3 harness/scoreboard.py \
   --factors structural_activity_proxy avg_trade_notional_bias
 ```
 
-Run fixed pre-eval on the latest factor experiment:
+对最新因子实验跑固定 pre-eval：
 
 ```bash
 python3 harness/run_pre_eval.py \
   --factor structural_activity_proxy
 ```
 
-Export shared labels for remote pre-eval workers:
+导出共享 labels 供 pre-eval 复用：
 
 ```bash
 python3 harness/export_forward_labels.py --year 2026
 ```
 
-Run one full autoresearch cycle:
+运行一轮固定 autoresearch cycle：
 
 ```bash
 python3 harness/autoresearch_cycle.py
 ```
 
-The scoreboard also writes:
+候选板会额外写出：
 
 ```text
 runs/<scoreboard_id>/scoreboard_report.md
 ```
 
-Each verified factor run also writes a fixed diagnostics artifact at:
+每个 verified 因子 run 也会写固定 diagnostics：
 
 ```text
 runs/<experiment_id>/diagnostics_summary.json
 ```
 
-Each fixed pre-eval run writes:
+每个固定 pre-eval run 会写：
 
 ```text
 runs/<pre_eval_id>/pre_eval_summary.json
 ```
 
-Each autoresearch cycle writes:
+每个 autoresearch cycle 会写：
 
 ```text
 runs/<cycle_id>/cycle_summary.json

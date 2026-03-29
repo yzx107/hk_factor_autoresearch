@@ -1,6 +1,6 @@
 +++
 card_id = "rc_20260326_queue_precision_2025"
-name = "Queue Precision 2025"
+name = "2025 Queue 精细语义违规示例（Queue Precision 2025）"
 owner = "codex"
 status = "draft"
 years = ["2025"]
@@ -8,11 +8,11 @@ universe = "phase_a_core"
 holding_horizon = "seconds"
 research_modules = ["queue_position_or_depletion", "precise_order_to_trade_lag"]
 required_fields = ["SeqNum", "OrderId", "Time", "Level", "VolumePre"]
-hypothesis = "Queue depletion and precise lag in 2025 predict immediate returns."
-mechanism = "Infer strict queue order and precise latency from 2025 order records."
-info_boundary = "Attempts to use blocked queue and precise timing semantics."
-failure_modes = ["Timing anchor is not available in 2025."]
-expected_risks = ["Hard admissibility violation.", "Queue semantics not verified."]
+hypothesis = "2025 年的 queue depletion 和 precise lag 可以预测即时收益。"
+mechanism = "试图从 2025 委托记录中推断 strict queue order 和 precise latency。"
+info_boundary = "尝试使用被阻断的 queue 与精细 timing 语义。"
+failure_modes = ["2025 年并不存在可用的 timing anchor。"]
+expected_risks = ["硬性 admissibility 违规。", "queue 语义未验证。"]
 
 [timing]
 mode = "fine_ok"
@@ -32,28 +32,28 @@ Ext = "unused"
 
 ## Hypothesis
 
-This card intentionally violates the 2025 timing boundary.
+这张卡是故意用来违反 2025 timing 边界的。
 
 ## Mechanism
 
-It assumes queue order and fine lag that are not admissible.
+它假设了当前并不 admissible 的 queue 顺序和精细 lag。
 
 ## Holding Horizon
 
-Seconds.
+秒级。
 
 ## Required Fields
 
-`SeqNum`, `OrderId`, `Time`, `Level`, `VolumePre`
+`SeqNum`、`OrderId`、`Time`、`Level`、`VolumePre`
 
 ## Info Boundary
 
-This is an invalid example for smoke testing.
+这是专门给 smoke test 用的非法示例。
 
 ## Failure Modes
 
-The anchor is not present in 2025.
+2025 年没有这个锚点。
 
 ## Expected Risks
 
-Hard timing and semantic failure.
+属于硬性的 timing 与语义失败。

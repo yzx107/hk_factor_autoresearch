@@ -1,6 +1,6 @@
 +++
 card_id = "rc_20260329_avg_trade_notional_bias_2026"
-name = "Average Trade Notional Bias 2026"
+name = "平均单笔成交额偏离（Average Trade Notional Bias 2026）"
 owner = "codex"
 status = "draft"
 years = ["2026"]
@@ -8,11 +8,11 @@ universe = "phase_a_core"
 holding_horizon = "30m_to_1d"
 research_modules = ["order_trade_coverage_profile"]
 required_fields = ["date", "source_file", "Price", "Volume"]
-hypothesis = "Instruments with unusually large average trade notional may proxy for concentrated participation and temporary information pressure."
-mechanism = "Average notional per print separates concentrated block-like activity from fragmented small-ticket trading without relying on blocked semantics."
-info_boundary = "Uses only verified structural trade fields plus a file-derived instrument key extracted from source_file."
-failure_modes = ["Signal is only a price-level proxy.", "Effect is dominated by illiquid names.", "Single event bursts do not generalize."]
-expected_risks = ["Cross-sectional price bias.", "Liquidity overlap.", "Event contamination."]
+hypothesis = "平均单笔成交额异常偏大的标的，可能代理更集中的参与者结构和短期信息压力。"
+mechanism = "每笔成交的平均 notional 可以区分更像块状的集中交易和碎片化的小单交易，而且不依赖被阻断语义。"
+info_boundary = "只使用 verified 结构性成交字段，以及从 source_file 提取的文件级 instrument key。"
+failure_modes = ["信号可能只是价格水平代理。", "效应可能被低流动性标的主导。", "单次事件爆发无法泛化。"]
+expected_risks = ["横截面价格偏置。", "与流动性重叠。", "事件污染。"]
 
 [timing]
 mode = "coarse_only"
@@ -32,30 +32,28 @@ Ext = "unused"
 
 ## Hypothesis
 
-Large average trade notional may signal concentrated demand for immediacy or
-attention.
+平均单笔成交额偏大，可能代表更集中的即时性需求或注意力。
 
 ## Mechanism
 
-The factor stays inside verified structural trades and avoids any directional or
-broker semantics.
+这个因子完全停留在 verified 结构性成交字段内，不触碰方向或 broker 语义。
 
 ## Holding Horizon
 
-Thirty minutes to one day.
+三十分钟到一天。
 
 ## Required Fields
 
-`date`, `source_file`, `Price`, `Volume`
+`date`、`source_file`、`Price`、`Volume`
 
 ## Info Boundary
 
-Instrument grouping is derived from `source_file` filename only.
+instrument grouping 只来自 `source_file` 的文件名。
 
 ## Failure Modes
 
-Price level and liquidity can dominate the raw cross section.
+价格水平和流动性可能主导原始横截面。
 
 ## Expected Risks
 
-The factor can overlap with size, liquidity, and event-driven bursts.
+这个因子可能和规模、流动性、事件驱动尖峰重叠。

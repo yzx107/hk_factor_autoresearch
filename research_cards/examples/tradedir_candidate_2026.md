@@ -1,6 +1,6 @@
 +++
 card_id = "rc_20260326_tradedir_candidate_2026"
-name = "TradeDir Candidate Contrast 2026"
+name = "TradeDir 候选对比（TradeDir Candidate Contrast 2026）"
 owner = "codex"
 status = "draft"
 years = ["2026"]
@@ -8,11 +8,11 @@ universe = "phase_a_core"
 holding_horizon = "5m_to_30m"
 research_modules = ["trade_dir_candidate_signal_profile"]
 required_fields = ["TickID", "Time", "Price", "Volume", "TradeDir"]
-hypothesis = "A caveated TradeDir contrast may carry weak short-horizon directional information in 2026."
-mechanism = "Vendor direction codes may correlate with short-horizon flow imbalance, but they are not signed-side truth."
-info_boundary = "Uses upstream admissibility outputs. TradeDir is treated only as a candidate directional signal under manual review."
-failure_modes = ["Contrast disappears after costs.", "Signal is only event pollution.", "Vendor direction semantics drift."]
-expected_risks = ["Manual review required.", "Not signed-flow truth.", "May be a vendor export artifact."]
+hypothesis = "带 caveat 的 TradeDir 对比，在 2026 年可能携带较弱的短周期方向信息。"
+mechanism = "vendor 方向代码可能与短周期流量失衡相关，但它不是 signed-side truth。"
+info_boundary = "使用上游 admissibility 输出。TradeDir 只被当作需要人工复核的 candidate directional signal。"
+failure_modes = ["考虑成本后对比消失。", "信号只是事件污染。", "vendor 方向语义漂移。"]
+expected_risks = ["必须人工复核。", "不是 signed-flow truth。", "可能只是 vendor 导出伪影。"]
 
 [timing]
 mode = "fine_ok"
@@ -32,29 +32,28 @@ Ext = "unused"
 
 ## Hypothesis
 
-Study whether the 2026 TradeDir contrast has weak predictive value after a
-short hold.
+研究 2026 年 TradeDir 对比在短持有后是否还有较弱预测力。
 
 ## Mechanism
 
-Treat the code as a vendor-defined candidate direction proxy only.
+只把这个代码当作 vendor-defined 的候选方向代理。
 
 ## Holding Horizon
 
-Five to thirty minutes.
+五到三十分钟。
 
 ## Required Fields
 
-`TickID`, `Time`, `Price`, `Volume`, `TradeDir`
+`TickID`、`Time`、`Price`、`Volume`、`TradeDir`
 
 ## Info Boundary
 
-No signed-side truth claim. No queue or latency semantics.
+不宣称 signed-side truth，不使用 queue 或 latency 语义。
 
 ## Failure Modes
 
-The observed contrast may be non-causal or may vanish after frictions.
+观察到的对比可能不具备因果性，也可能在摩擦后消失。
 
 ## Expected Risks
 
-Strong vendor-semantic caveat.
+这个例子带有很强的 vendor 语义 caveat。

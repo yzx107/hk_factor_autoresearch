@@ -1,13 +1,13 @@
 # Harness
 
-This directory holds the fixed experiment harness for Phase A.
+这个目录放的是 Phase A 的固定实验 harness。
 
-Rules:
-- researchers and agents may change ideas
-- ordinary experiments may not change the harness
-- every run must go through the harness runner and leave a registry record
+基本规则：
+- 研究员和 agent 可以改 idea
+- 普通实验不可以改 harness
+- 每次 run 都必须走 harness runner，并留下 registry 记录
 
-Default run:
+默认 run：
 
 ```bash
 python3 harness/run_phase_a.py \
@@ -15,7 +15,7 @@ python3 harness/run_phase_a.py \
   --factor structural_activity_proxy
 ```
 
-Verified-data run:
+真实 verified 数据 run：
 
 ```bash
 python3 harness/run_verified_factor.py \
@@ -24,19 +24,19 @@ python3 harness/run_verified_factor.py \
   --dates 2026-03-13
 ```
 
-Build local daily aggregate cache:
+构建本地逐日聚合缓存：
 
 ```bash
 python3 harness/build_daily_agg.py --table all --year 2026
 ```
 
-Progress view:
+查看进度：
 
 ```bash
 python3 harness/status.py
 ```
 
-Suggested anchor run:
+建议的 anchor run：
 
 ```bash
 python3 harness/run_verified_factor.py \
@@ -46,14 +46,14 @@ python3 harness/run_verified_factor.py \
   --notes "three-anchor verified run"
 ```
 
-Each run writes:
+每次 run 会写出：
 - `result.json`
 - `data_run_summary.json`
 - `diagnostics_summary.json`
 - `preview.json`
 - `factor_output.parquet`
 
-Latest-run comparison:
+比较最近一次 run：
 
 ```bash
 python3 harness/compare_factors.py \
@@ -62,7 +62,7 @@ python3 harness/compare_factors.py \
   --notes "safe factor comparison"
 ```
 
-Candidate scoreboard:
+生成候选板：
 
 ```bash
 python3 harness/scoreboard.py \
@@ -70,7 +70,7 @@ python3 harness/scoreboard.py \
   --notes "safe candidate board"
 ```
 
-Fixed pre-eval:
+固定 pre-eval：
 
 ```bash
 python3 harness/run_pre_eval.py \
@@ -78,33 +78,33 @@ python3 harness/run_pre_eval.py \
   --notes "fixed forward-return pre-eval"
 ```
 
-Export shared labels:
+导出共享 labels：
 
 ```bash
 python3 harness/export_forward_labels.py --year 2026
 ```
 
-Fixed autoresearch cycle:
+固定 autoresearch cycle：
 
 ```bash
 python3 harness/autoresearch_cycle.py \
   --notes "daily cycle"
 ```
 
-Each scoreboard writes:
+每个 scoreboard 会写出：
 - `scoreboard_summary.json`
 - `scoreboard_report.md`
 
-Each pre-eval writes:
+每个 pre-eval 会写出：
 - `pre_eval_summary.json`
 - `label_preview.json`
 
-Each cycle writes:
+每个 cycle 会写出：
 - `cycle_summary.json`
 - `cycle_report.md`
 
-Why this exists:
-- keep experiment setup comparable
-- reduce token waste by emitting compact summaries
-- make keep, caveat, and discard decisions explicit
-- capture both linear and non-linear signal evidence under fixed pre-eval rules
+为什么要有这一层：
+- 保证实验设置可比较
+- 用紧凑摘要减少 token 浪费
+- 把 keep、caveat、discard 决策显式化
+- 在固定 pre-eval 规则下同时保留线性和非线性信号证据
