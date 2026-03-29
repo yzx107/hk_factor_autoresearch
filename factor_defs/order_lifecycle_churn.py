@@ -6,11 +6,13 @@ import math
 
 import polars as pl
 
+from factor_defs.change_support import collect_daily_frames_from_loader
+
 INPUT_TABLE = "verified_orders"
 OUTPUT_COLUMN = "order_lifecycle_churn_score"
+SOURCE_COLUMNS = ["date", "source_file", "OrderId", "Price", "Volume"]
 
-
-def compute_signal(orders: pl.LazyFrame) -> pl.LazyFrame:
+def _daily_base(orders: pl.LazyFrame) -> pl.LazyFrame:
     event_count = pl.len().alias("order_event_count")
     unique_orders = pl.col("OrderId").n_unique().alias("unique_order_ids")
     total_order_notional = (pl.col("Price") * pl.col("Volume")).sum().alias("total_order_notional")
@@ -29,8 +31,27 @@ def compute_signal(orders: pl.LazyFrame) -> pl.LazyFrame:
                 pl.col("churn_ratio").log1p() + 0.1 * pl.col("total_order_notional").log1p()
             ).alias(OUTPUT_COLUMN)
         )
-        .sort(["date", OUTPUT_COLUMN], descending=[False, True])
     )
+
+
+def compute_signal(orders: pl.LazyFrame) -> pl.LazyFrame:
+    return _daily_base(orders).sort(["date", OUTPUT_COLUMN], descending=[False, True])
+
+
+def compute_signal_from_loader(
+    *,
+    table_loader,
+    target_dates: list[str] | None = None,
+    previous_date_map: dict[str, str] | None = None,
+) -> pl.LazyFrame:
+    del previous_date_map
+    dates = list(target_dates or [])
+    return collect_daily_frames_from_loader(
+        table_loader=table_loader,
+        source_columns=SOURCE_COLUMNS,
+        daily_frame_builder=_daily_base,
+        dates=dates,
+    ).sort(["date", OUTPUT_COLUMN], descending=[False, True])
 
 
 def order_lifecycle_churn(rows: list[dict[str, float]]) -> list[float]:

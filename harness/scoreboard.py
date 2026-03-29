@@ -30,10 +30,15 @@ def _read_tsv(path: Path) -> list[dict[str, str]]:
         return list(csv.DictReader(handle, delimiter="\t"))
 
 
+def _has_materialized_output(entry: dict[str, str]) -> bool:
+    return (Path(entry["run_dir"]) / "data_run_summary.json").exists()
+
+
 def _latest_runs(entries: list[dict[str, str]]) -> dict[str, dict[str, str]]:
     latest: dict[str, dict[str, str]] = {}
     for entry in entries:
-        latest[entry["factor_name"]] = entry
+        if _has_materialized_output(entry):
+            latest[entry["factor_name"]] = entry
     return latest
 
 

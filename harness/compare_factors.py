@@ -36,6 +36,10 @@ def ensure_comparison_log(path: Path = COMPARISON_LOG) -> None:
     )
 
 
+def _has_materialized_output(entry: dict[str, str]) -> bool:
+    return (Path(entry["run_dir"]) / "data_run_summary.json").exists()
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Compare two factor runs under a fixed harness.")
     parser.add_argument("--left-factor", required=True, help="Factor name for the left side.")
@@ -49,7 +53,7 @@ def parse_args() -> argparse.Namespace:
 
 def _latest_experiment(entries: list[dict[str, str]], factor_name: str) -> dict[str, str]:
     for entry in reversed(entries):
-        if entry["factor_name"] == factor_name:
+        if entry["factor_name"] == factor_name and _has_materialized_output(entry):
             return entry
     raise ValueError(f"No experiment found for factor `{factor_name}`.")
 

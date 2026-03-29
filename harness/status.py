@@ -94,11 +94,19 @@ def _latest_data_run(entries: list[dict[str, str]]) -> dict[str, Any] | None:
     return None
 
 
+def _latest_materialized_experiment(entries: list[dict[str, str]]) -> dict[str, Any] | None:
+    for entry in reversed(entries):
+        summary_path = Path(entry["run_dir"]) / "data_run_summary.json"
+        if summary_path.exists():
+            return entry
+    return None
+
+
 def build_status_snapshot(entries: list[dict[str, str]]) -> StatusSnapshot:
     keep_count = sum(1 for entry in entries if entry["status"] == "keep")
     manual_review_count = sum(1 for entry in entries if entry["status"] == "manual_review")
     discard_count = sum(1 for entry in entries if entry["status"] == "discard")
-    latest_experiment = entries[-1] if entries else None
+    latest_experiment = _latest_materialized_experiment(entries)
     latest_data_run = _latest_data_run(entries)
     comparisons = read_comparison_log()
     latest_comparison = comparisons[-1] if comparisons else None

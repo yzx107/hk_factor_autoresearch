@@ -55,6 +55,21 @@ def build_change_signal(
     )
 
 
+def collect_daily_frames_from_loader(
+    *,
+    table_loader,
+    source_columns: list[str],
+    daily_frame_builder,
+    dates: list[str],
+) -> pl.LazyFrame:
+    daily_frames: list[pl.DataFrame] = []
+    for date in dates:
+        daily_frames.append(daily_frame_builder(table_loader([date], source_columns)).collect())
+    if not daily_frames:
+        return pl.DataFrame().lazy()
+    return pl.concat(daily_frames, how="vertical_relaxed").lazy()
+
+
 def build_change_signal_from_loader(
     *,
     table_loader,
@@ -85,11 +100,12 @@ def build_change_signal_from_loader(
         )
 
     context_dates = sorted(set(effective_dates) | {previous_date_map[date] for date in effective_dates})
-    daily_frames: list[pl.DataFrame] = []
-    for date in context_dates:
-        daily_frames.append(daily_base_builder(table_loader([date], source_columns)).collect())
-
-    daily_base = pl.concat(daily_frames, how="vertical_relaxed").lazy()
+    daily_base = collect_daily_frames_from_loader(
+        table_loader=table_loader,
+        source_columns=source_columns,
+        daily_frame_builder=daily_base_builder,
+        dates=context_dates,
+    )
     return build_change_signal(
         daily_base,
         base_score_column=base_score_column,

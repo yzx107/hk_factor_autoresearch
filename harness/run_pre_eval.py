@@ -43,6 +43,11 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run fixed pre-eval for a factor experiment.")
     parser.add_argument("--factor", required=True, help="Factor name to pre-evaluate.")
     parser.add_argument("--experiment", default="", help="Optional explicit experiment id.")
+    parser.add_argument(
+        "--labels-path",
+        default="",
+        help="Optional parquet file with prebuilt labels to avoid re-reading verified trades.",
+    )
     parser.add_argument("--notes", default="", help="Short pre-eval note.")
     return parser.parse_args()
 
@@ -59,7 +64,7 @@ def _find_experiment(entries: list[dict[str, str]], factor_name: str, experiment
         raise ValueError(f"Experiment `{experiment_id}` not found.")
 
     for entry in reversed(entries):
-        if entry["factor_name"] == factor_name:
+        if entry["factor_name"] == factor_name and (Path(entry["run_dir"]) / "data_run_summary.json").exists():
             return entry
     raise ValueError(f"No experiment found for factor `{factor_name}`.")
 
@@ -116,6 +121,7 @@ def run_pre_eval_for_factor(
     *,
     factor_name: str,
     experiment_id: str = "",
+    labels_path: Path | None = None,
     notes: str = "",
 ) -> tuple[str, dict[str, object], Path]:
     entries = read_experiment_log()
@@ -127,15 +133,18 @@ def run_pre_eval_for_factor(
         {value.isoformat() if hasattr(value, "isoformat") else str(value) for value in factor_df["date"]}
     )
 
-    next_map = next_available_dates("verified_trades", factor_dates, step=1)
-    label_dates = sorted(set(factor_dates) | set(next_map.values()))
-    trades = load_verified_lazy(
-        "verified_trades",
-        label_dates,
-        ["date", "source_file", "Time", "Price", "row_num_in_file"],
-    )
-    close_like = build_close_like_frame(trades)
-    labels_df = build_forward_return_labels(close_like, next_date_map=next_map, label_name=LABEL_NAME)
+    if labels_path:
+        labels_df = pl.read_parquet(labels_path)
+    else:
+        next_map = next_available_dates("verified_trades", factor_dates, step=1)
+        label_dates = sorted(set(factor_dates) | set(next_map.values()))
+        trades = load_verified_lazy(
+            "verified_trades",
+            label_dates,
+            ["date", "source_file", "Time", "Price", "row_num_in_file"],
+        )
+        close_like = build_close_like_frame(trades)
+        labels_df = build_forward_return_labels(close_like, next_date_map=next_map, label_name=LABEL_NAME)
     summary = build_pre_eval_summary(factor_df, score_column=score_column, labels_df=labels_df, label_column=LABEL_NAME)
 
     created_at = datetime.now(timezone.utc).isoformat()
@@ -153,6 +162,7 @@ def run_pre_eval_for_factor(
         "factor_name": entry["factor_name"],
         "score_column": score_column,
         "notes": notes,
+        "labels_path": str(labels_path) if labels_path else "",
         **summary,
     }
     summary_path.write_text(json.dumps(payload, indent=2, default=str), encoding="utf-8")
@@ -178,6 +188,7 @@ def main() -> int:
     pre_eval_id, payload, _ = run_pre_eval_for_factor(
         factor_name=args.factor,
         experiment_id=args.experiment,
+        labels_path=Path(args.labels_path) if args.labels_path else None,
         notes=args.notes,
     )
 

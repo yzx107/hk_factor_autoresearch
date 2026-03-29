@@ -102,7 +102,8 @@ def _load_json(path: Path) -> dict[str, Any]:
 
 def _latest_experiment_for_factor(entries: list[dict[str, str]], factor_name: str) -> dict[str, str] | None:
     for entry in reversed(entries):
-        if entry["factor_name"] == factor_name:
+        summary_path = Path(entry["run_dir"]) / "data_run_summary.json"
+        if entry["factor_name"] == factor_name and summary_path.exists():
             return entry
     return None
 
