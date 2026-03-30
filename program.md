@@ -38,7 +38,7 @@
 
 - 新增或修改 `research_cards/`
 - 新增或修改 `factor_defs/`、`transforms/`、`combos/`
-- 维护 `factor_contracts/` 和 family registry
+- 维护 `factor_contracts/`、`factor_families/` 和 family registry
 - 在 `configs/` 下添加派生 run 配置，但不能改冻结 baseline
 - 追加 experiment rows 和 lineage entries
 

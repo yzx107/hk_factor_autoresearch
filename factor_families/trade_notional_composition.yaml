@@ -1,0 +1,23 @@
+family_id: trade_notional_composition
+family_name: 单笔成交额结构
+mechanism_hypothesis: 用平均单笔成交额及其变化代理参与者结构与集中成交强度。
+core_observables:
+  - turnover
+  - trade_count
+  - avg_trade_notional
+approved_factor_ids:
+  - avg_trade_notional_bias_v1
+  - avg_trade_notional_bias_change_v1
+rejected_factor_ids: []
+baseline_refs:
+  - avg_trade_notional_bias
+current_best_variant: avg_trade_notional_bias_change
+known_failure_modes:
+  - 容易与 size 或 liquidity proxy 共线
+  - 在高成交但低分歧场景下增量可能不足
+forbidden_semantic_assumptions:
+  - no_trade_side_truth
+  - no_broker_identity_truth
+  - no_queue_semantics
+status: active
+notes: 主要用于检验成交尺寸结构是否提供超出 activity baseline 的增量。

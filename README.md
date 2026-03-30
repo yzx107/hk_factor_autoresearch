@@ -22,6 +22,7 @@
 - `data_contracts/`：固定字段、年份、timing 边界
 - `diagnostics/`：去冗余、切片和失败知识化这类诊断层
 - `factor_contracts/`：单因子 metadata 合同
+- `factor_families/`：机制家族 yaml，补充 family 级研究视角
 - `gates/`：研究晋级门和 promotion policy
 - `research_cards/`：研究卡模板和 smoke 示例
 - `gatekeeper/gate_a_data.py`：最小 Gate A 合法性检查
@@ -39,6 +40,7 @@
 - `diagnostics/redundancy.py`：把“有信号”和“有增量”分开
 - `diagnostics/regime_slices.py`：把“在哪些状态下有效”也纳入固定诊断
 - `factor_contracts/schema.md`：统一说明每个因子必须声明什么
+- `factor_families/*.yaml`：记录每个机制家族的机制假说、最佳变体和失败模式
 - `registry/factor_families.tsv`：把候选按机制家族登记，而不是只看单次实验
 - `registry/failure_taxonomy.md`：统一失败分类，避免 registry 变成墓地
 - `gates/promotion_policy.md`：把 Gate A/B/C/D/E 的目标和输出固定下来

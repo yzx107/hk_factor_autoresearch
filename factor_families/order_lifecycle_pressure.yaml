@@ -1,0 +1,24 @@
+family_id: order_lifecycle_pressure
+family_name: 订单生命周期压力
+mechanism_hypothesis: 用每个唯一订单对应的重复事件密度代理流动性争夺与报价摩擦。
+core_observables:
+  - order_event_count
+  - unique_order_ids
+  - order_event_density
+approved_factor_ids:
+  - order_lifecycle_churn_v1
+  - order_lifecycle_churn_change_v1
+rejected_factor_ids: []
+baseline_refs:
+  - order_lifecycle_churn
+current_best_variant: order_lifecycle_churn_change
+known_failure_modes:
+  - 覆盖率受 verified_orders_daily 可用范围限制
+  - 容易把技术性的订单重复事件误判成经济压力
+forbidden_semantic_assumptions:
+  - no_trade_side_truth
+  - no_broker_identity_truth
+  - no_ordertype_truth
+  - no_queue_semantics
+status: active
+notes: 当前只声明 OrderId 生命周期形态，不宣称官方订单身份或 queue reconstruction。

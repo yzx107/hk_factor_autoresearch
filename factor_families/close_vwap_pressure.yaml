@@ -1,0 +1,23 @@
+family_id: close_vwap_pressure
+family_name: 收盘-VWAP 压力
+mechanism_hypothesis: 用尾盘最后成交相对同日 VWAP 的偏离代理未消化的尾盘压力。
+core_observables:
+  - close_like_price
+  - vwap
+  - trade_count
+approved_factor_ids:
+  - close_vwap_gap_intensity_v1
+  - close_vwap_gap_intensity_change_v1
+rejected_factor_ids: []
+baseline_refs:
+  - close_vwap_gap_intensity
+current_best_variant: close_vwap_gap_intensity_change
+known_failure_modes:
+  - 方向可能反向，容易需要 sign flip
+  - 在尾盘成交稀疏或异常事件日中不稳定
+forbidden_semantic_assumptions:
+  - no_trade_side_truth
+  - no_broker_identity_truth
+  - no_queue_semantics
+status: active
+notes: 当前 full-year pre-eval 最强，但仍应被视作 end-of-day pressure family，而不是已验证 alpha。

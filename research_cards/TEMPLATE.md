@@ -1,6 +1,7 @@
 # Research Card Template
 
 请使用 TOML front matter。Gate A 只读取 front matter。
+正式候选进入 `factor_defs/` 前，下面的 front matter 字段和正文段落都视为必填。
 
 ```toml
 +++
@@ -8,14 +9,19 @@ card_id = "rc_YYYYMMDD_slug"
 name = "简短因子名"
 owner = "human_or_agent"
 status = "draft"
+factor_family = "activity_pressure"
 years = ["2026"]
 universe = "phase_a_core"
 holding_horizon = "5m_to_1d"
 research_modules = ["order_trade_coverage_profile"]
 required_fields = ["Time", "Price", "Volume"]
+horizon_scope = "30m_to_1d"
 hypothesis = "写清楚事前假设。"
 mechanism = "写清楚市场机制，不要写事后解释。"
 info_boundary = "准确说明使用了哪些上游字段和 caveat。"
+observable_proxies = ["列出可观测代理。"]
+baseline_refs = ["structural_activity_proxy"]
+promotion_target = "exploratory_only"
 failure_modes = ["列出这个想法在结构上会怎样失败。"]
 expected_risks = ["列出风格、流动性、事件和语义风险。"]
 
@@ -87,3 +93,11 @@ Ext = "unused"
 ## Expected Risks
 
 列出换手、事件污染、流动性、风格和语义风险。
+
+## Checklist
+
+正式候选在进入 `factor_defs/` 前，至少要满足：
+- `factor_family` 已存在于 `factor_families/`
+- `Observable Proxies` 不是空段落
+- `Why Incremental vs Baselines` 明确点名至少一个 baseline 或 family sibling
+- `Forbidden Semantic Assumptions` 明确写出未使用的隐含语义
