@@ -1,0 +1,22 @@
+version = "baseline_registry_v1"
+name = "Phase A baseline benchmark set"
+owner = "agent"
+status = "active"
+default_baselines = [
+  "structural_activity_proxy",
+  "avg_trade_notional_bias",
+  "order_lifecycle_churn",
+  "close_vwap_gap_intensity",
+]
+
+[groups.activity_pressure]
+description = "Activity and turnover shaped baselines built from verified trades."
+factors = ["structural_activity_proxy", "avg_trade_notional_bias"]
+
+[groups.order_lifecycle_pressure]
+description = "Order-shape baseline built from verified orders."
+factors = ["order_lifecycle_churn"]
+
+[groups.close_vwap_pressure]
+description = "End-of-day dislocation baseline built from close-like versus VWAP."
+factors = ["close_vwap_gap_intensity"]

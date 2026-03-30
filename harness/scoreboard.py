@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import csv
 from datetime import datetime, timezone
+import importlib
 import itertools
 import json
 from math import fsum
@@ -15,6 +16,13 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+
+from diagnostics.redundancy import (
+    baseline_group_for_factor,
+    classify_incremental_hint,
+    derive_baseline_metrics,
+    load_baseline_registry,
+)
 
 EXPERIMENT_LOG = ROOT / "registry" / "experiment_log.tsv"
 COMPARISON_LOG = ROOT / "registry" / "comparison_log.tsv"
@@ -50,8 +58,16 @@ def _factor_row(entry: dict[str, str]) -> dict[str, Any]:
     run_dir = Path(entry["run_dir"])
     data_summary = _load_json(run_dir / "data_run_summary.json")
     diagnostics = _load_json(run_dir / "diagnostics_summary.json")
+    module = importlib.import_module(f"factor_defs.{entry['factor_name']}")
     return {
         "factor_name": entry["factor_name"],
+        "factor_id": getattr(module, "FACTOR_ID", entry["factor_name"]),
+        "factor_family": getattr(module, "FACTOR_FAMILY", ""),
+        "mechanism": getattr(module, "MECHANISM", ""),
+        "transform_chain": list(getattr(module, "TRANSFORM_CHAIN", [])),
+        "forbidden_semantic_assumptions": list(
+            getattr(module, "FORBIDDEN_SEMANTIC_ASSUMPTIONS", [])
+        ),
         "experiment_id": entry["experiment_id"],
         "table_name": data_summary["table_name"],
         "score_column": data_summary["score_column"],
@@ -115,16 +131,17 @@ def _comparison_row(entry: dict[str, str]) -> dict[str, Any]:
     }
 
 
-def _score_sort_key(row: dict[str, Any]) -> tuple[bool, float, float, float, float]:
+def _score_sort_key(row: dict[str, Any]) -> tuple[bool, float, float, float, float, float]:
     abs_ic = row["mean_abs_rank_ic"]
     normalized_mi = row["mean_normalized_mutual_info"]
-    corr = row["mean_abs_peer_corr"]
+    corr = row["mean_abs_baseline_corr"]
     distinct = float(row["distinct_instruments"])
     return (
         abs_ic is None and normalized_mi is None,
         0.0 if abs_ic is None else -float(abs_ic),
         0.0 if normalized_mi is None else -float(normalized_mi),
-        float(corr),
+        0.0 if corr is None else float(corr),
+        float(row["mean_abs_peer_corr"]),
         -distinct,
     )
 
@@ -138,8 +155,10 @@ def _average(values: list[float]) -> float:
 def _derive_factor_board(
     factor_rows: list[dict[str, Any]],
     comparison_rows: list[dict[str, Any]],
+    baseline_registry: dict[str, Any],
 ) -> list[dict[str, Any]]:
     factor_names = [row["factor_name"] for row in factor_rows]
+    baseline_factors = list(baseline_registry.get("default_baselines", []))
     comparison_index: dict[tuple[str, str], dict[str, Any]] = {}
     for row in comparison_rows:
         key = tuple(sorted((row["left_factor"], row["right_factor"])))
@@ -166,15 +185,27 @@ def _derive_factor_board(
                 if overlap_values:
                     peer_overlaps.append(_average(overlap_values))
         pre_eval = factor.get("pre_eval") or {}
+        baseline_metrics = derive_baseline_metrics(
+            factor_name=factor["factor_name"],
+            comparison_rows=comparison_rows,
+            baseline_factors=baseline_factors,
+        )
         board.append(
             {
                 "factor_name": factor["factor_name"],
+                "factor_id": factor["factor_id"],
+                "factor_family": factor["factor_family"],
+                "baseline_group": baseline_group_for_factor(factor["factor_name"], baseline_registry),
+                "baseline_role": baseline_metrics["baseline_role"],
+                "baseline_peer_count": baseline_metrics["baseline_peer_count"],
                 "table_name": factor["table_name"],
                 "output_rows": factor["output_rows"],
                 "distinct_instruments": factor["distinct_instruments"],
                 "overall_score_mean": factor["overall_score_mean"],
                 "mean_abs_peer_corr": _average(peer_corrs),
                 "mean_top_overlap_count": _average(peer_overlaps),
+                "mean_abs_baseline_corr": baseline_metrics["mean_abs_baseline_corr"],
+                "mean_baseline_top_overlap": baseline_metrics["mean_baseline_top_overlap"],
                 "pre_eval_id": pre_eval.get("pre_eval_id"),
                 "label_name": pre_eval.get("label_name"),
                 "evaluated_dates": pre_eval.get("labeled_dates", []),
@@ -186,6 +217,14 @@ def _derive_factor_board(
                 "mean_normalized_mutual_info": pre_eval.get("mean_normalized_mutual_info"),
                 "mean_top_bottom_spread": pre_eval.get("mean_top_bottom_spread"),
                 "mean_coverage_ratio": pre_eval.get("mean_coverage_ratio"),
+                "incremental_hint": classify_incremental_hint(
+                    baseline_role=baseline_metrics["baseline_role"],
+                    mean_abs_rank_ic=pre_eval.get("mean_abs_rank_ic"),
+                    mean_abs_baseline_corr=baseline_metrics["mean_abs_baseline_corr"],
+                ),
+                "mechanism": factor["mechanism"],
+                "transform_chain": factor["transform_chain"],
+                "forbidden_semantic_assumptions": factor["forbidden_semantic_assumptions"],
                 "dates": factor["dates"],
                 "notes": factor["notes"],
             }
@@ -195,6 +234,7 @@ def _derive_factor_board(
 
 def _render_markdown(payload: dict[str, Any]) -> str:
     lines: list[str] = []
+    baseline_factors = list(payload.get("baseline_factors", []))
     lines.append("# Candidate Scoreboard")
     lines.append("")
     lines.append(f"- scoreboard_id: `{payload['scoreboard_id']}`")
@@ -202,15 +242,30 @@ def _render_markdown(payload: dict[str, Any]) -> str:
     lines.append(f"- factor_count: `{payload['factor_count']}`")
     lines.append(f"- comparison_count: `{payload['comparison_count']}`")
     lines.append(f"- pre_eval_count: `{payload['pre_eval_count']}`")
+    lines.append(f"- baseline_count: `{len(baseline_factors)}`")
+    if baseline_factors:
+        lines.append("")
+        lines.append("## Baseline Set")
+        lines.append("")
+        for factor_name in baseline_factors:
+            lines.append(f"- `{factor_name}`")
     lines.append("")
     lines.append("## Factor Board")
     lines.append("")
     for row in payload["factor_board"]:
+        baseline_corr = row.get("mean_abs_baseline_corr")
+        baseline_corr_text = (
+            "na" if baseline_corr is None else f"{baseline_corr:.3f}"
+        )
+        factor_family = row.get("factor_family", "")
+        baseline_role = row.get("baseline_role", "unknown")
+        incremental_hint = row.get("incremental_hint", "unknown")
         pre_eval_text = (
             f"mean_abs_rank_ic=`{row['mean_abs_rank_ic']:.4f}` "
             f"mean_nmi=`{row['mean_normalized_mutual_info']:.4f}` "
             f"mean_spread=`{row['mean_top_bottom_spread']:.4f}` "
-            f"coverage=`{row['mean_coverage_ratio']:.3f}`"
+            f"coverage=`{row['mean_coverage_ratio']:.3f}` "
+            f"incremental_hint=`{incremental_hint}`"
             if row["mean_abs_rank_ic"] is not None
             and row["mean_normalized_mutual_info"] is not None
             and row["mean_top_bottom_spread"] is not None
@@ -219,11 +274,14 @@ def _render_markdown(payload: dict[str, Any]) -> str:
         lines.append(
             "- "
             f"`{row['factor_name']}` "
+            f"family=`{factor_family}` "
+            f"baseline_role=`{baseline_role}` "
             f"table=`{row['table_name']}` "
             f"rows=`{row['output_rows']}` "
             f"distinct_instruments=`{row['distinct_instruments']}` "
             f"mean_abs_peer_corr=`{row['mean_abs_peer_corr']:.3f}` "
             f"mean_top_overlap=`{row['mean_top_overlap_count']:.2f}` "
+            f"mean_abs_baseline_corr=`{baseline_corr_text}` "
             f"{pre_eval_text}"
         )
     lines.append("")
@@ -241,7 +299,8 @@ def _render_markdown(payload: dict[str, Any]) -> str:
             f"mean_rank_ic=`{row['mean_rank_ic']:.4f}` "
             f"mean_abs_rank_ic=`{row['mean_abs_rank_ic']:.4f}` "
             f"mean_nmi=`{row['mean_normalized_mutual_info']:.4f}` "
-            f"mean_top_bottom_spread=`{row['mean_top_bottom_spread']:.4f}`"
+            f"mean_top_bottom_spread=`{row['mean_top_bottom_spread']:.4f}` "
+            f"incremental_hint=`{incremental_hint}`"
         )
     lines.append("")
     lines.append("## Comparison Notes")
@@ -312,7 +371,8 @@ def build_scoreboard(factor_names: list[str], *, notes: str) -> tuple[str, dict[
     run_dir.mkdir(parents=True, exist_ok=True)
     summary_path = run_dir / "scoreboard_summary.json"
     report_path = run_dir / "scoreboard_report.md"
-    factor_board = _derive_factor_board(factor_rows, comparison_rows)
+    baseline_registry = load_baseline_registry()
+    factor_board = _derive_factor_board(factor_rows, comparison_rows, baseline_registry)
 
     payload = {
         "scoreboard_id": scoreboard_id,
@@ -321,6 +381,8 @@ def build_scoreboard(factor_names: list[str], *, notes: str) -> tuple[str, dict[
         "factor_count": len(factor_rows),
         "comparison_count": len(comparison_rows),
         "pre_eval_count": sum(1 for row in factor_rows if row["pre_eval"] is not None),
+        "baseline_registry": baseline_registry,
+        "baseline_factors": list(baseline_registry.get("default_baselines", [])),
         "factors": factor_rows,
         "factor_board": factor_board,
         "comparisons": comparison_rows,

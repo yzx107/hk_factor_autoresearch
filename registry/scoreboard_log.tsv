@@ -11,3 +11,5 @@ score_20260329T082238Z	2026-03-29T08:22:38.095468+00:00	8	28	/Users/yxin/AI_Work
 score_20260329T085008Z	2026-03-29T08:50:08.241726+00:00	8	28	/Users/yxin/AI_Workstation/hk_factor_autoresearch/runs/score_20260329T085008Z/scoreboard_summary.json	sanity after incomplete full-year runs
 score_20260329T092005Z	2026-03-29T09:20:05.506884+00:00	8	28	/Users/yxin/AI_Workstation/hk_factor_autoresearch/runs/score_20260329T092005Z/scoreboard_summary.json	full-year candidate board
 score_20260329T092107Z	2026-03-29T09:21:07.467898+00:00	8	28	/Users/yxin/AI_Workstation/hk_factor_autoresearch/runs/score_20260329T092107Z/scoreboard_summary.json	full-year candidate board rerun after completed comparisons
+score_20260330T015937Z	2026-03-30T01:59:37.020426+00:00	8	28	/Users/yxin/AI_Workstation/hk_factor_autoresearch/runs/score_20260330T015937Z/scoreboard_summary.json	baseline redundancy board
+score_20260330T020023Z	2026-03-30T02:00:23.835947+00:00	8	28	/Users/yxin/AI_Workstation/hk_factor_autoresearch/runs/score_20260330T020023Z/scoreboard_summary.json	baseline redundancy board rerun
