@@ -20,6 +20,7 @@
 - `ARCHITECTURE_ADDENDUM.md`：研究工厂从“能跑”升级到“可持续 feature discovery”的补充架构
 - `baselines/`：固定 baseline benchmark set
 - `data_contracts/`：固定字段、年份、timing 边界
+- `data_contracts/caveat_lane.md`：说明哪些字段只能走 `phase_a_caveat_lane`
 - `diagnostics/`：去冗余、切片和失败知识化这类诊断层
 - `factor_contracts/`：单因子 metadata 合同
 - `factor_families/`：机制家族 yaml，补充 family 级研究视角
@@ -55,6 +56,10 @@
 - 没有 production backtester
 - 没有重型 paper-trading 系统
 - 默认不做 broker alpha、signed-flow truth、queue semantics
+
+当前 universe 分层：
+- `phase_a_core`：默认安全面，只消费 `verified v1` 的结构字段
+- `phase_a_caveat_lane`：受限研究面，只允许显式声明的 caveat-only 字段，并默认人工复核
 
 最小 smoke：
 

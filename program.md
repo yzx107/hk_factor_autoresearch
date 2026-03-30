@@ -27,11 +27,14 @@
 继承自上游 `Hshare_Lab_v2` 的 Phase A 边界：
 - `2025 = coarse_only`
 - `2026 = fine_ok`，但仍受字段语义约束
+- 默认研究面 = `phase_a_core`
+- caveat-only 研究面 = `phase_a_caveat_lane`
 - `TradeDir`：`2025 = stable_code_structure_only`
-- `TradeDir`：`2026 = candidate_directional_signal_only`
+- `TradeDir`：`2026 = vendor_aggressor_proxy_only`
 - `BrokerNo`：两年都只能 `reference_lookup_only`
 - `Level`、`VolumePre` 和 queue semantics 一律阻断
-- `Type`、`Ext`、`OrderType` 只是带 caveat 的 vendor code，不能当默认真值
+- `OrderType`、`Type`、`OrderSideVendor` 只能走 caveat lane
+- full `Ext` 不能当默认真值，也不能直接进入因子面
 - 本 repo 只读消费上游 verified 和 admissibility 输出
 
 ## Agent 可以改什么

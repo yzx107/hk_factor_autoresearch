@@ -17,6 +17,11 @@ YEAR_GRADES = {
     "2026": "fine_ok",
 }
 
+SUPPORTED_UNIVERSES = {
+    "phase_a_core",
+    "phase_a_caveat_lane",
+}
+
 SAFE_FIELDS = {
     "date",
     "table_name",
@@ -46,12 +51,12 @@ BLOCKED_FIELDS = {
 }
 
 CAVEAT_FIELDS = {
-    "OrderType": "OrderType remains a vendor event code and is not default-admitted.",
-    "Type": "Type remains a vendor trade code and is not default-admitted.",
-    "Ext": "Ext remains a vendor extension code and is not default-admitted.",
+    "OrderType": "OrderType is caveat-only: stable vendor event code under manual review.",
+    "Type": "Type is caveat-only: vendor public-trade-type bucket under manual review.",
+    "OrderSideVendor": "OrderSideVendor is caveat-only: derived from Ext.bit0 under manual review.",
 }
 
-KNOWN_FIELDS = SAFE_FIELDS | set(BLOCKED_FIELDS) | set(CAVEAT_FIELDS) | {"TradeDir", "BrokerNo"}
+KNOWN_FIELDS = SAFE_FIELDS | set(BLOCKED_FIELDS) | set(CAVEAT_FIELDS) | {"TradeDir", "BrokerNo", "Ext"}
 
 MODULE_MATRIX = {
     "order_trade_coverage_profile": {"2025": "allowed", "2026": "allowed"},
@@ -166,8 +171,9 @@ def _validate_card_shape(card: dict[str, Any], errors: list[str]) -> None:
         errors.append("`failure_modes` must be a non-empty list.")
     if not isinstance(card["expected_risks"], list) or not card["expected_risks"]:
         errors.append("`expected_risks` must be a non-empty list.")
-    if card.get("universe") != "phase_a_core":
-        errors.append("Phase A currently supports only the named universe `phase_a_core`.")
+    if card.get("universe") not in SUPPORTED_UNIVERSES:
+        allowed = ", ".join(sorted(SUPPORTED_UNIVERSES))
+        errors.append(f"Phase A currently supports only named universes: {allowed}.")
 
 
 def _check_year_and_timing(card: dict[str, Any], errors: list[str], caveats: list[str]) -> list[str]:
@@ -215,6 +221,8 @@ def _check_modules(card: dict[str, Any], years: list[str], errors: list[str], ca
 def _check_fields(card: dict[str, Any], years: list[str], errors: list[str], caveats: list[str]) -> None:
     fields = [_canonical_field(str(field)) for field in card["required_fields"]]
     semantics = card["semantics"]
+    universe = str(card["universe"])
+    uses_caveat_lane = False
 
     unknown_fields = sorted(set(fields) - KNOWN_FIELDS)
     if unknown_fields:
@@ -225,10 +233,12 @@ def _check_fields(card: dict[str, Any], years: list[str], errors: list[str], cav
             errors.append(BLOCKED_FIELDS[field])
         elif field in CAVEAT_FIELDS:
             caveats.append(CAVEAT_FIELDS[field])
+            uses_caveat_lane = True
 
     trade_dir_semantics = semantics["TradeDir"]
     uses_trade_dir = "TradeDir" in fields or trade_dir_semantics != "unused"
     if uses_trade_dir:
+        uses_caveat_lane = True
         if trade_dir_semantics == "unused":
             errors.append("TradeDir is listed but `semantics.TradeDir` is `unused`.")
         if trade_dir_semantics in {"confirmed_signed_side", "signed_flow_truth", "aggressor_truth"}:
@@ -239,43 +249,70 @@ def _check_fields(card: dict[str, Any], years: list[str], errors: list[str], cav
             else:
                 caveats.append("2025 TradeDir use is limited to stable code structure checks.")
         if "2026" in years:
-            if trade_dir_semantics == "candidate_directional_signal":
+            if trade_dir_semantics in {"candidate_directional_signal", "vendor_aggressor_proxy_only"}:
                 caveats.append(
-                    "2026 TradeDir may be used only as a candidate directional signal under manual review."
+                    "2026 TradeDir is caveat-only: vendor-derived aggressor proxy under manual review, not signed-side truth."
                 )
             elif trade_dir_semantics == "stable_code_structure_only":
                 caveats.append("TradeDir remains vendor-defined and manually reviewed.")
             elif trade_dir_semantics != "unused":
-                errors.append("2026 TradeDir use cannot exceed `candidate_directional_signal_only`.")
+                errors.append("2026 TradeDir use cannot exceed `vendor_aggressor_proxy_only`.")
 
     broker_semantics = semantics["BrokerNo"]
     uses_broker = "BrokerNo" in fields or broker_semantics != "unused"
     if uses_broker:
+        uses_caveat_lane = True
         if broker_semantics == "unused":
             errors.append("BrokerNo is listed but `semantics.BrokerNo` is `unused`.")
         elif broker_semantics == "reference_lookup_only":
-            caveats.append("BrokerNo is lookup-only and cannot drive direct alpha claims.")
+            caveats.append("BrokerNo remains reference-only and cannot drive direct alpha claims.")
         else:
             errors.append("BrokerNo is limited to `reference_lookup_only` in both 2025 and 2026.")
 
     order_type_semantics = semantics["OrderType"]
     if "OrderType" in fields or order_type_semantics != "unused":
-        if order_type_semantics == "weak_event_code_only":
-            caveats.append("OrderType remains a vendor code and needs manual review.")
+        uses_caveat_lane = True
+        if order_type_semantics in {"weak_event_code_only", "stable_vendor_event_code_only"}:
+            caveats.append("OrderType is caveat-only: stable vendor event code, not official event semantics.")
         elif order_type_semantics != "unused":
             errors.append("OrderType cannot be promoted beyond weak vendor event-code usage.")
 
-    for field_name in ("Type", "Ext"):
-        semantic_value = semantics[field_name]
-        if field_name in fields or semantic_value != "unused":
-            if semantic_value == "vendor_code_descriptive_only":
-                caveats.append(f"{field_name} remains vendor-defined and descriptive only.")
-            elif semantic_value != "unused":
-                errors.append(f"{field_name} cannot be promoted beyond vendor-code descriptive usage.")
+    type_semantics = semantics["Type"]
+    if "Type" in fields or type_semantics != "unused":
+        uses_caveat_lane = True
+        if type_semantics in {"vendor_code_descriptive_only", "vendor_public_trade_type_bucket_only"}:
+            caveats.append("Type is caveat-only: vendor public-trade-type bucket, not official raw TrdType.")
+        elif type_semantics != "unused":
+            errors.append("Type cannot be promoted beyond vendor public-trade-type bucket usage.")
+
+    if "Ext" in fields:
+        errors.append("Full Ext stays outside Phase A caveat lane; use `OrderSideVendor` derived from `Ext.bit0` instead.")
+
+    ext_semantics = semantics["Ext"]
+    uses_order_side_vendor = "OrderSideVendor" in fields
+    if uses_order_side_vendor:
+        uses_caveat_lane = True
+        if ext_semantics != "bit0_order_side_proxy_only":
+            errors.append(
+                "OrderSideVendor requires `semantics.Ext = bit0_order_side_proxy_only`."
+            )
+        else:
+            caveats.append(
+                "OrderSideVendor is caveat-only: derived from Ext.bit0 as a vendor order-side proxy."
+            )
+    elif ext_semantics != "unused":
+        errors.append(
+            "Ext cannot be used directly in Phase A; only `OrderSideVendor` derived from `Ext.bit0` may enter the caveat lane."
+        )
 
     for blocked_semantic_field in ("Level", "VolumePre"):
         if semantics[blocked_semantic_field] != "unused":
             errors.append(f"{blocked_semantic_field} semantics are blocked in Phase A.")
+
+    if uses_caveat_lane and universe != "phase_a_caveat_lane":
+        errors.append(
+            "Caveat-only fields require `universe = phase_a_caveat_lane`."
+        )
 
 
 def evaluate_card(path: Path) -> GateResult:

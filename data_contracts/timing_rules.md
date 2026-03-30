@@ -19,8 +19,11 @@
 
 字段级 timing 边界：
 - `TradeDir`: `2025 = stable_code_structure_only`
-- `TradeDir`: `2026 = candidate_directional_signal_only`
-- `TradeDir` 永远不能当 confirmed signed side。
+- `TradeDir`: `2026 = vendor_aggressor_proxy_only`
+- `TradeDir` 永远不能当 confirmed signed side 或官方 aggressor truth。
 - `BrokerNo` 在两年里都只能 `reference_lookup_only`。
 - `Level` 和 `VolumePre` 持续阻断。
-- `Type`、`Ext`、`OrderType` 仍然是需要人工复核 caveat 的 vendor code。
+- `OrderType`: `allow_with_caveat`，只能按 stable vendor event code 使用。
+- `Type`: `allow_with_caveat`，只能按 vendor public-trade-type bucket 使用。
+- `OrderSideVendor`: `allow_with_caveat`，只能按 `Ext.bit0` 派生 proxy 使用。
+- full `Ext` 仍不进入 Phase A 可研究面。

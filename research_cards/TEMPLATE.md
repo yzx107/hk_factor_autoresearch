@@ -42,6 +42,10 @@ Ext = "unused"
 +++
 ```
 
+默认 `phase_a_core` 只适合安全结构字段。
+如果 research card 要使用 `TradeDir`、`OrderType`、`Type` 或 `OrderSideVendor`，
+就必须改成 `universe = "phase_a_caveat_lane"`，并在 semantics 中写明 caveat-only 用法。
+
 ## Hypothesis
 
 写一句简短的事前判断。
@@ -101,3 +105,4 @@ Ext = "unused"
 - `Observable Proxies` 不是空段落
 - `Why Incremental vs Baselines` 明确点名至少一个 baseline 或 family sibling
 - `Forbidden Semantic Assumptions` 明确写出未使用的隐含语义
+- 如果用了 caveat-only 字段，`universe` 必须是 `phase_a_caveat_lane`
