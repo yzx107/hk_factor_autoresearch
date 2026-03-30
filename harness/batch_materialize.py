@@ -46,14 +46,16 @@ def run_batch_materialize(
     config = load_cycle_config(config_path)
     candidates: list[dict[str, str]] = []
     for candidate in config.candidates:
-        module_name = candidate.factor_name
+        module_name = candidate.module_name
         module = __import__(f"factor_defs.{module_name}", fromlist=["dummy"])
         table_name = getattr(module, "INPUT_TABLE")
         if table_filter and table_name != table_filter:
             continue
         candidates.append(
             {
-                "factor_name": module_name,
+                "factor_name": candidate.factor_name,
+                "module_name": module_name,
+                "transform_name": candidate.transform_name,
                 "card_path": str(candidate.card_path),
                 "table_name": table_name,
             }
@@ -66,6 +68,8 @@ def run_batch_materialize(
             record, summary = run_verified_factor_experiment(
                 card_path=Path(candidate["card_path"]),
                 factor_name=candidate["factor_name"],
+                module_name=candidate["module_name"],
+                transform_name=candidate["transform_name"],
                 dates=dates,
                 owner=owner,
                 notes=notes or f"full-year materialize {year}",

@@ -32,6 +32,12 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run a verified-layer factor on one or more dates.")
     parser.add_argument("--card", required=True, help="Research card path.")
     parser.add_argument("--factor", required=True, help="Factor module name under factor_defs/ .")
+    parser.add_argument("--module", default="", help="Optional factor module override for transform-backed candidates.")
+    parser.add_argument(
+        "--transform",
+        default="level",
+        help="Optional transform name like level or one_day_difference.",
+    )
     parser.add_argument("--dates", nargs="+", required=True, help="Trading dates like 2026-03-13.")
     parser.add_argument("--owner", default="agent", help="Experiment owner.")
     parser.add_argument("--notes", default="", help="Short run note.")
@@ -44,8 +50,8 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def _load_factor_module(factor_name: str):
-    return importlib.import_module(f"factor_defs.{factor_name}")
+def _load_factor_module(module_name: str):
+    return importlib.import_module(f"factor_defs.{module_name}")
 
 
 def _required_columns(card: dict[str, object]) -> list[str]:
@@ -78,13 +84,21 @@ def _joined_table_name(table_names: list[str]) -> str:
     return "+".join(sorted(dict.fromkeys(table_names)))
 
 
-def _factor_kwargs(compute_signal, *, target_dates: list[str], previous_date_map: dict[str, str]) -> dict[str, object]:
+def _factor_kwargs(
+    compute_signal,
+    *,
+    target_dates: list[str],
+    previous_date_map: dict[str, str],
+    transform_name: str,
+) -> dict[str, object]:
     params = inspect.signature(compute_signal).parameters
     kwargs: dict[str, object] = {}
     if "target_dates" in params:
         kwargs["target_dates"] = target_dates
     if "previous_date_map" in params:
         kwargs["previous_date_map"] = previous_date_map
+    if "transform" in params:
+        kwargs["transform"] = transform_name
     return kwargs
 
 
@@ -92,6 +106,8 @@ def run_verified_factor_experiment(
     *,
     card_path: Path,
     factor_name: str,
+    module_name: str | None = None,
+    transform_name: str = "level",
     dates: list[str],
     owner: str,
     notes: str,
@@ -115,7 +131,8 @@ def run_verified_factor_experiment(
     if record.gate_a_decision == "allow_with_caveat" and not allow_with_caveat:
         return record, None
 
-    module = _load_factor_module(factor_name)
+    resolved_module_name = module_name or factor_name
+    module = _load_factor_module(resolved_module_name)
     table_name = getattr(module, "INPUT_TABLE")
     score_column = getattr(module, "OUTPUT_COLUMN")
     lookback_steps = int(getattr(module, "LOOKBACK_STEPS", 0))
@@ -144,6 +161,7 @@ def run_verified_factor_experiment(
                     module.compute_signal_from_cache_loader,
                     target_dates=dates,
                     previous_date_map=previous_date_map,
+                    transform_name=transform_name,
                 ),
             )
         else:
@@ -163,31 +181,54 @@ def run_verified_factor_experiment(
             daily_frame = load_daily_agg_lazy(daily_table_name, load_dates, daily_columns)
             signal_lazy = module.compute_signal_from_daily(
                 daily_frame,
-                **_factor_kwargs(module.compute_signal_from_daily, target_dates=dates, previous_date_map=previous_date_map),
+                **_factor_kwargs(
+                    module.compute_signal_from_daily,
+                    target_dates=dates,
+                    previous_date_map=previous_date_map,
+                    transform_name=transform_name,
+                ),
             )
         elif hasattr(module, "compute_signal_from_loader"):
             signal_lazy = module.compute_signal_from_loader(
                 table_loader=_build_partition_loader(table_name),
-                target_dates=dates,
-                previous_date_map=previous_date_map,
+                **_factor_kwargs(
+                    module.compute_signal_from_loader,
+                    target_dates=dates,
+                    previous_date_map=previous_date_map,
+                    transform_name=transform_name,
+                ),
             )
         else:
             lazy_frame = load_verified_lazy(table_name, load_dates, required_columns)
             signal_lazy = module.compute_signal(
                 lazy_frame,
-                **_factor_kwargs(module.compute_signal, target_dates=dates, previous_date_map=previous_date_map),
+                **_factor_kwargs(
+                    module.compute_signal,
+                    target_dates=dates,
+                    previous_date_map=previous_date_map,
+                    transform_name=transform_name,
+                ),
             )
     elif hasattr(module, "compute_signal_from_loader"):
         signal_lazy = module.compute_signal_from_loader(
             table_loader=_build_partition_loader(table_name),
-            target_dates=dates,
-            previous_date_map=previous_date_map,
+            **_factor_kwargs(
+                module.compute_signal_from_loader,
+                target_dates=dates,
+                previous_date_map=previous_date_map,
+                transform_name=transform_name,
+            ),
         )
     else:
         lazy_frame = load_verified_lazy(table_name, load_dates, required_columns)
         signal_lazy = module.compute_signal(
             lazy_frame,
-            **_factor_kwargs(module.compute_signal, target_dates=dates, previous_date_map=previous_date_map),
+            **_factor_kwargs(
+                module.compute_signal,
+                target_dates=dates,
+                previous_date_map=previous_date_map,
+                transform_name=transform_name,
+            ),
         )
     signal_df = signal_lazy.collect()
     diagnostics = build_signal_diagnostics(signal_df, score_column=score_column)
@@ -205,6 +246,8 @@ def run_verified_factor_experiment(
     summary = {
         "experiment_id": record.experiment_id,
         "factor_name": factor_name,
+        "module_name": resolved_module_name,
+        "transform_name": transform_name,
         "table_name": source_table_name,
         "upstream_table_name": table_name,
         "data_source_mode": source_mode,
@@ -231,6 +274,8 @@ def main() -> int:
     record, summary = run_verified_factor_experiment(
         card_path=ROOT / args.card,
         factor_name=args.factor,
+        module_name=args.module or None,
+        transform_name=args.transform,
         dates=args.dates,
         owner=args.owner,
         notes=args.notes,

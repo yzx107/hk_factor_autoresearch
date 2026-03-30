@@ -32,6 +32,8 @@ RUN_ROOT = ROOT / "runs"
 class CandidateSpec:
     factor_name: str
     card_path: Path
+    module_name: str
+    transform_name: str
 
 
 @dataclass(frozen=True)
@@ -67,6 +69,8 @@ def load_cycle_config(path: Path = DEFAULT_CONFIG) -> CycleConfig:
         CandidateSpec(
             factor_name=str(item["factor"]),
             card_path=ROOT / str(item["card"]),
+            module_name=str(item.get("module", item["factor"])),
+            transform_name=str(item.get("transform", "level")),
         )
         for item in raw["candidates"]
     )
@@ -266,6 +270,8 @@ def run_autoresearch_cycle(
             record, summary = run_verified_factor_experiment(
                 card_path=candidate.card_path,
                 factor_name=candidate.factor_name,
+                module_name=candidate.module_name,
+                transform_name=candidate.transform_name,
                 dates=list(config.anchor_dates),
                 owner=resolved_owner,
                 notes="autoresearch cycle verified run",

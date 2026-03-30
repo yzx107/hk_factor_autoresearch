@@ -54,13 +54,31 @@ def _load_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def _resolve_factor_module_name(entry: dict[str, str], data_summary: dict[str, Any]) -> str:
+    candidates = [str(data_summary.get("module_name", "")), entry["factor_name"]]
+    if entry["factor_name"].endswith("_change"):
+        candidates.append(entry["factor_name"][: -len("_change")])
+    for module_name in candidates:
+        if not module_name:
+            continue
+        try:
+            importlib.import_module(f"factor_defs.{module_name}")
+            return module_name
+        except ModuleNotFoundError:
+            continue
+    raise ModuleNotFoundError(f"Unable to resolve factor module for `{entry['factor_name']}`.")
+
+
 def _factor_row(entry: dict[str, str]) -> dict[str, Any]:
     run_dir = Path(entry["run_dir"])
     data_summary = _load_json(run_dir / "data_run_summary.json")
     diagnostics = _load_json(run_dir / "diagnostics_summary.json")
-    module = importlib.import_module(f"factor_defs.{entry['factor_name']}")
+    module_name = _resolve_factor_module_name(entry, data_summary)
+    module = importlib.import_module(f"factor_defs.{module_name}")
     return {
         "factor_name": entry["factor_name"],
+        "module_name": module_name,
+        "transform_name": data_summary.get("transform_name", "level"),
         "factor_id": getattr(module, "FACTOR_ID", entry["factor_name"]),
         "factor_family": getattr(module, "FACTOR_FAMILY", ""),
         "mechanism": getattr(module, "MECHANISM", ""),
@@ -194,6 +212,8 @@ def _derive_factor_board(
         board.append(
             {
                 "factor_name": factor["factor_name"],
+                "module_name": factor["module_name"],
+                "transform_name": factor["transform_name"],
                 "factor_id": factor["factor_id"],
                 "factor_family": factor["factor_family"],
                 "baseline_group": baseline_group_for_factor(factor["factor_name"], baseline_registry),
@@ -435,9 +455,36 @@ def build_scoreboard(factor_names: list[str], *, notes: str) -> tuple[str, dict[
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Build a fixed scoreboard from latest factor runs.")
-    parser.add_argument("--factors", nargs="+", required=True, help="Factor names to include.")
+    parser.add_argument("--factors", nargs="+", help="Factor names to include.")
     parser.add_argument("--notes", default="", help="Short scoreboard note.")
-    return parser.parse_args()
+    args = parser.parse_args()
+
+    if not args.factors:
+        # Fallback: get some recent successful factors if none specified
+        try:
+            experiment_entries = _read_tsv(EXPERIMENT_LOG)
+            # Find distinct names for factors with successful materialize outputs or diagnostics
+            # We filter for those that have at least one materialized output available
+            found = []
+            seen = set()
+            for entry in reversed(experiment_entries):
+                name = entry.get("factor_name")
+                if name and name not in seen:
+                    if _has_materialized_output(entry):
+                        found.append(name)
+                        seen.add(name)
+                if len(found) >= 12:
+                    break
+            if found:
+                args.factors = found
+                if not args.notes:
+                    args.notes = f"Auto-detected {len(found)} recent factors"
+            else:
+                parser.error("No factors provided and no recent successful runs found in experiment_log.tsv.")
+        except Exception as e:
+            parser.error(f"the following arguments are required: --factors (Automatic fallback failed: {e})")
+
+    return args
 
 
 def main() -> int:

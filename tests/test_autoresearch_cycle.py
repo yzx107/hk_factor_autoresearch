@@ -32,7 +32,37 @@ class AutoresearchCycleTest(unittest.TestCase):
             config = load_cycle_config(path)
             self.assertEqual(config.version, "v1")
             self.assertEqual(config.candidates[0].factor_name, "f1")
+            self.assertEqual(config.candidates[0].module_name, "f1")
+            self.assertEqual(config.candidates[0].transform_name, "level")
             self.assertEqual(config.anchor_dates, ("2026-01-05",))
+
+    def test_load_cycle_config_reads_module_and_transform(self) -> None:
+        with TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "cycle.toml"
+            path.write_text(
+                'version = "v1"\n'
+                'name = "cycle"\n'
+                'owner = "agent"\n'
+                'anchor_dates = ["2026-01-05"]\n'
+                "\n"
+                "[selection]\n"
+                "min_abs_rank_ic_keep = 0.05\n"
+                "min_abs_rank_ic_review = 0.02\n"
+                "min_normalized_mi_keep = 0.02\n"
+                "min_normalized_mi_review = 0.01\n"
+                "max_mean_abs_peer_corr = 0.50\n"
+                "\n"
+                "[[candidates]]\n"
+                'factor = "f1_change"\n'
+                'module = "f1"\n'
+                'transform = "one_day_difference"\n'
+                'card = "research_cards/examples/sample.md"\n',
+                encoding="utf-8",
+            )
+            config = load_cycle_config(path)
+            self.assertEqual(config.candidates[0].factor_name, "f1_change")
+            self.assertEqual(config.candidates[0].module_name, "f1")
+            self.assertEqual(config.candidates[0].transform_name, "one_day_difference")
 
     def test_recommendation_flags_negative_ic_as_inverse_candidate(self) -> None:
         action, reason = _recommendation(

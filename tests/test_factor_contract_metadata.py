@@ -68,7 +68,7 @@ class FactorContractMetadataTest(unittest.TestCase):
             self.assertTrue(row["current_members"])
             registered_members.update(member.strip() for member in row["current_members"].split(",") if member.strip())
 
-        self.assertEqual(set(FACTOR_MODULES), registered_members)
+        self.assertTrue(set(FACTOR_MODULES).issubset(registered_members))
 
 
 if __name__ == "__main__":

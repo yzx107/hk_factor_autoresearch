@@ -8,6 +8,7 @@
 - 保持逻辑纯净、易测试
 - 每个定义都配一张 research card
 - 每个正式候选都导出统一 factor contract metadata
+- 同一原型的 `level` / `change` 这类变体优先做成 `transform` 参数，而不是独立文件
 - 每轮实验只对应一个小的因子改动
 
 不要做：

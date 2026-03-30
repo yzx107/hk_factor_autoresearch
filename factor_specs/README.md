@@ -16,6 +16,7 @@
 1. 在 `factor_specs/*.toml` 里定义 prototype
 2. 运行 `python3 harness/generate_factor_batch.py --spec <spec>`
 3. 自动生成 `research_cards/examples/*.md` 和 `factor_defs/*.py`
+   默认是“一个 prototype 一个模块”，在模块内部通过 `transform` 参数支持 `level` / `one_day_difference`
 4. 把正式候选接入 `configs/autoresearch_phase_a.toml`
 5. 跑固定 cycle
 

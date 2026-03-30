@@ -131,6 +131,7 @@ from __future__ import annotations
 
 import polars as pl
 
+from factor_defs.change_support import build_change_signal
 from {support["module"]} import {support["tables_symbol"]}, {support["loader_symbol"]}
 
 FACTOR_ID = "{factor_id}"
@@ -140,72 +141,20 @@ INPUT_DEPENDENCIES = {_python_list(prototype.input_dependencies)}
 RESEARCH_UNIT = "date_x_instrument_key"
 HORIZON_SCOPE = "{spec.horizon_scope}"
 VERSION = "v1"
-TRANSFORM_CHAIN = ["level"]
+TRANSFORM_CHAIN = ["level", "one_day_difference"]
 EXPECTED_REGIME = {prototype.expected_regime!r}
 FORBIDDEN_SEMANTIC_ASSUMPTIONS = {_python_list(spec.forbidden_semantic_assumptions)}
 
 INPUT_TABLE = "{support["input_table"]}"
 INPUT_TABLES = {_python_list(support["input_tables"])}
 OUTPUT_COLUMN = "{output_column}"
-
-
-def _with_level_score(daily: pl.LazyFrame) -> pl.LazyFrame:
-    return daily.with_columns(
-        ({prototype.level_expression}).alias(OUTPUT_COLUMN)
-    )
-
-
-def compute_signal(daily: pl.LazyFrame) -> pl.LazyFrame:
-    return _with_level_score(daily).sort(["date", OUTPUT_COLUMN], descending=[False, True])
-
-
-def compute_signal_from_cache_loader(
-    *,
-    cache_loader,
-    target_dates: list[str] | None = None,
-    previous_date_map: dict[str, str] | None = None,
-) -> pl.LazyFrame:
-    del previous_date_map
-    daily = {support["loader_symbol"]}(cache_loader=cache_loader, dates=list(target_dates or []))
-    return compute_signal(daily)
-'''
-
-
-def _render_change_module(spec: BatchSpec, prototype: PrototypeSpec) -> str:
-    support = SUPPORT_MODULES[spec.support]
-    factor_name = f"{prototype.slug}_change"
-    factor_id = f"{factor_name}_v1"
-    output_column = f"{factor_name}_score"
-    base_score_column = f"{prototype.slug}_level"
-    return f'''"""Auto-generated Gate A change factor from factor_specs."""
-
-from __future__ import annotations
-
-import polars as pl
-
-from factor_defs.change_support import build_change_signal
-from {support["module"]} import {support["tables_symbol"]}, {support["loader_symbol"]}
-
-FACTOR_ID = "{factor_id}"
-FACTOR_FAMILY = "{spec.family}"
-MECHANISM = "Measure one-day acceleration in {prototype.display_name}."
-INPUT_DEPENDENCIES = {_python_list(prototype.input_dependencies)}
-RESEARCH_UNIT = "date_x_instrument_key"
-HORIZON_SCOPE = "{spec.horizon_scope}"
-VERSION = "v1"
-TRANSFORM_CHAIN = ["level", "one_day_difference"]
-EXPECTED_REGIME = "change version of: {prototype.expected_regime}"
-FORBIDDEN_SEMANTIC_ASSUMPTIONS = {_python_list(spec.forbidden_semantic_assumptions)}
-
-INPUT_TABLE = "{support["input_table"]}"
-INPUT_TABLES = {_python_list(support["input_tables"])}
-OUTPUT_COLUMN = "{output_column}"
+SUPPORTED_TRANSFORMS = ["level", "one_day_difference"]
 LOOKBACK_STEPS = 1
 
 
-def _daily_base(daily: pl.LazyFrame) -> pl.LazyFrame:
+def _level_frame(daily: pl.LazyFrame) -> pl.LazyFrame:
     return daily.with_columns(
-        ({prototype.level_expression}).alias("{base_score_column}")
+        ({prototype.level_expression}).alias("{prototype.slug}_level")
     )
 
 
@@ -214,14 +163,23 @@ def compute_signal(
     *,
     target_dates: list[str] | None = None,
     previous_date_map: dict[str, str] | None = None,
+    transform: str = "level",
 ) -> pl.LazyFrame:
-    return build_change_signal(
-        _daily_base(daily),
-        base_score_column="{base_score_column}",
-        output_column=OUTPUT_COLUMN,
-        target_dates=target_dates,
-        previous_date_map=previous_date_map,
-    )
+    if transform == "level":
+        return (
+            _level_frame(daily)
+            .with_columns(pl.col("{prototype.slug}_level").alias(OUTPUT_COLUMN))
+            .sort(["date", OUTPUT_COLUMN], descending=[False, True])
+        )
+    if transform == "one_day_difference":
+        return build_change_signal(
+            _level_frame(daily),
+            base_score_column="{prototype.slug}_level",
+            output_column=OUTPUT_COLUMN,
+            target_dates=target_dates,
+            previous_date_map=previous_date_map,
+        )
+    raise ValueError(f"Unsupported transform `{{transform}}` for {factor_id}.")
 
 
 def compute_signal_from_cache_loader(
@@ -229,42 +187,37 @@ def compute_signal_from_cache_loader(
     cache_loader,
     target_dates: list[str] | None = None,
     previous_date_map: dict[str, str] | None = None,
+    transform: str = "level",
 ) -> pl.LazyFrame:
     target_dates = list(target_dates or [])
     previous_date_map = dict(previous_date_map or {{}})
-    context_dates = sorted(set(target_dates) | set(previous_date_map.values()))
+    context_dates = (
+        target_dates
+        if transform == "level"
+        else sorted(set(target_dates) | set(previous_date_map.values()))
+    )
     daily = {support["loader_symbol"]}(cache_loader=cache_loader, dates=context_dates)
     return compute_signal(
         daily,
         target_dates=target_dates,
         previous_date_map=previous_date_map,
+        transform=transform,
     )
 '''
 
 
-def _render_card(spec: BatchSpec, prototype: PrototypeSpec, *, change: bool) -> str:
-    slug = prototype.slug + ("_change" if change else "")
-    display_name = prototype.display_name + ("变化" if change else "")
+def _render_card(spec: BatchSpec, prototype: PrototypeSpec) -> str:
+    slug = prototype.slug
+    display_name = prototype.display_name
     card_id = f"rc_20260330_{slug}_2026"
     title = f"{display_name}（{slug.replace('_', ' ').title()} 2026）"
-    hypothesis = (
-        f"{prototype.hypothesis} 这里先看它的一日变化，而不是静态水平。"
-        if change
-        else prototype.hypothesis
-    )
-    mechanism = (
-        f"{prototype.mechanism} 变化版更关注压力切换，而不是常态水平。"
-        if change
-        else prototype.mechanism
-    )
+    hypothesis = prototype.hypothesis
+    mechanism = prototype.mechanism
     why_incremental = (
-        f"{prototype.why_incremental} 变化版优先检验它是否比对应 level 版更有增量。"
-        if change
-        else prototype.why_incremental
+        prototype.why_incremental
+        + " 这个 prototype 默认同时支持 `level` 和 `one_day_difference` 两种 transform。"
     )
     baseline_refs = list(prototype.baseline_refs)
-    if change:
-        baseline_refs = [f"{prototype.slug}"] + baseline_refs
     required_fields = _python_list(prototype.required_fields)
     observable_proxies = _python_list(prototype.observable_proxies)
     baseline_refs_text = _python_list(tuple(baseline_refs))
@@ -361,6 +314,12 @@ uses_queue_semantics = false
 
 {spec.promotion_target}
 
+## Transform Variants
+
+这个 prototype 统一使用同一张 research card，但允许在 harness 配置里声明：
+- `transform = "level"`
+- `transform = "one_day_difference"`
+
 ## Expected Risks
 
 {" ".join(prototype.expected_risks)}
@@ -377,15 +336,11 @@ def generate_from_spec(spec: BatchSpec, *, overwrite: bool = False) -> list[Path
     generated: list[Path] = []
     for prototype in spec.prototypes:
         level_module = FACTOR_DEFS_ROOT / f"{prototype.slug}.py"
-        change_module = FACTOR_DEFS_ROOT / f"{prototype.slug}_change.py"
         level_card = CARDS_ROOT / f"{prototype.slug}_2026.md"
-        change_card = CARDS_ROOT / f"{prototype.slug}_change_2026.md"
 
         _write_text(level_module, _render_level_module(spec, prototype), overwrite)
-        _write_text(change_module, _render_change_module(spec, prototype), overwrite)
-        _write_text(level_card, _render_card(spec, prototype, change=False), overwrite)
-        _write_text(change_card, _render_card(spec, prototype, change=True), overwrite)
-        generated.extend([level_module, change_module, level_card, change_card])
+        _write_text(level_card, _render_card(spec, prototype), overwrite)
+        generated.extend([level_module, level_card])
     return generated
 
 
