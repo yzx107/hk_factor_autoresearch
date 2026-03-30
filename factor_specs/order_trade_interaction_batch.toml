@@ -1,0 +1,80 @@
+version = "gate_a_factor_specs_v1"
+family = "order_trade_interaction_pressure"
+family_name = "订单-成交交互压力"
+support = "order_trade_interaction"
+universe = "phase_a_core"
+years = ["2026"]
+owner = "codex"
+holding_horizon = "30m_to_1d"
+horizon_scope = "30m_to_1d"
+promotion_target = "family screening"
+research_modules = ["order_trade_coverage_profile"]
+forbidden_semantic_assumptions = [
+  "no_trade_side_truth",
+  "no_broker_identity_truth",
+  "no_ordertype_truth",
+  "no_queue_semantics",
+]
+
+[[prototypes]]
+slug = "order_unique_trade_participation_gap"
+display_name = "订单-成交参与广度差"
+mechanism = "比较唯一订单参与广度与成交笔广度，捕捉“挂单参与”和“实际成交实现”之间的落差。"
+hypothesis = "当 unique order breadth 相对 trade_count 异常抬升时，可能代理更强的未成交压力或更慢的成交吸收。"
+why_incremental = "它比较的是订单参与广度和成交实现广度，不是单看 activity，也不是单看 order_event_count。"
+expected_regime = "works better when displayed participation broadens faster than matched execution breadth"
+expected_winning_regimes = ["high_turnover", "high_vol", "quote_heavy_days"]
+expected_failure_regimes = ["low_turnover", "sparse_order_days", "coverage_shift_days"]
+baseline_refs = ["order_trade_event_ratio", "structural_activity_proxy"]
+observable_proxies = ["unique_order_ids", "trade_count", "unique-order-vs-trade-count log gap"]
+required_fields = ["date", "source_file", "OrderId", "Price", "Volume"]
+input_dependencies = ["date", "source_file", "OrderId", "Price", "Volume"]
+failure_modes = [
+  "可能只是 order_event_ratio 的低信息量变体。",
+  "低覆盖日中 breadth 信号容易被噪声主导。",
+  "不同股票的文件切分差异可能影响广度代理。",
+]
+expected_risks = ["与 activity baseline 共线。", "订单覆盖偏差。", "低成交日不稳定。"]
+level_expression = '(pl.col("unique_order_ids").log1p() - pl.col("trade_count").log1p())'
+
+[[prototypes]]
+slug = "order_notional_vs_trade_notional_gap"
+display_name = "订单-成交平均名义额差"
+mechanism = "比较平均订单名义额与平均成交名义额，捕捉显示出来的订单规模和真正成交规模之间的落差。"
+hypothesis = "当订单侧平均名义额相对成交侧平均名义额异常偏高时，可能说明大额意图未被成交充分吸收。"
+why_incremental = "它比较的是两侧平均 notional 的相对差，而不是只看 turnover、avg_trade_notional 或 total_order_notional。"
+expected_regime = "works better when displayed order size rises faster than realized matched trade size"
+expected_winning_regimes = ["high_vol", "large_order_days", "late_session_pressure"]
+expected_failure_regimes = ["thin_turnover", "single-block-event_days", "coverage_shift_days"]
+baseline_refs = ["order_trade_notional_ratio", "avg_trade_notional_bias"]
+observable_proxies = ["total_order_notional", "unique_order_ids", "turnover", "trade_count", "average-order-vs-trade-notional gap"]
+required_fields = ["date", "source_file", "OrderId", "Price", "Volume"]
+input_dependencies = ["date", "source_file", "OrderId", "Price", "Volume"]
+failure_modes = [
+  "可能退化为 notional baseline 的换皮表达。",
+  "极端大单事件会污染平均 notional 差。",
+  "订单覆盖变化可能被误读成经济信号。",
+]
+expected_risks = ["与 notional baseline 共线。", "大单事件污染。", "低流动性失真。"]
+level_expression = '((pl.col("total_order_notional").log1p() - pl.col("unique_order_ids").log1p()) - (pl.col("turnover").log1p() - pl.col("trade_count").log1p()))'
+
+[[prototypes]]
+slug = "close_vwap_churn_interaction"
+display_name = "收盘-VWAP 与 churn 交互"
+mechanism = "把尾盘价格偏离和订单生命周期 churn 放在一起，捕捉“价格压力 × 订单摩擦”的联合状态。"
+hypothesis = "如果 close-vwap gap 和 churn 同时抬升，可能比单独的尾盘压力或 churn 更像短周期未消化状态。"
+why_incremental = "它把 close-vwap pressure 和 order_lifecycle pressure 做交互，不是任一单家族的 level 重复。"
+expected_regime = "works better when end-of-day dislocation and order churn rise together"
+expected_winning_regimes = ["high_vol", "late_session_pressure", "closing_imbalance_days"]
+expected_failure_regimes = ["flat_close_days", "low_order_activity_days", "noisy_event_days"]
+baseline_refs = ["close_vwap_gap_intensity", "order_lifecycle_churn"]
+observable_proxies = ["close_like_price", "vwap", "churn_ratio", "close-vwap gap x churn interaction"]
+required_fields = ["date", "source_file", "OrderId", "Time", "Price", "Volume", "row_num_in_file"]
+input_dependencies = ["date", "source_file", "OrderId", "Time", "Price", "Volume", "row_num_in_file"]
+failure_modes = [
+  "可能只是 close_vwap_gap 的放大版本。",
+  "尾盘成交稀疏时交互项容易失真。",
+  "高 churn 但无真实价格压力的日子会制造假阳性。",
+]
+expected_risks = ["与 close-vwap family 共线。", "尾盘噪声。", "极端事件污染。"]
+level_expression = '(((pl.col("close_like_price") / pl.col("vwap")) - 1.0) * pl.col("churn_ratio").log1p())'

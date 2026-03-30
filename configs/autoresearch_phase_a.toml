@@ -57,3 +57,27 @@ card = "research_cards/examples/order_trade_notional_ratio_2026.md"
 [[candidates]]
 factor = "order_trade_notional_ratio_change"
 card = "research_cards/examples/order_trade_notional_ratio_change_2026.md"
+
+[[candidates]]
+factor = "order_unique_trade_participation_gap"
+card = "research_cards/examples/order_unique_trade_participation_gap_2026.md"
+
+[[candidates]]
+factor = "order_unique_trade_participation_gap_change"
+card = "research_cards/examples/order_unique_trade_participation_gap_change_2026.md"
+
+[[candidates]]
+factor = "order_notional_vs_trade_notional_gap"
+card = "research_cards/examples/order_notional_vs_trade_notional_gap_2026.md"
+
+[[candidates]]
+factor = "order_notional_vs_trade_notional_gap_change"
+card = "research_cards/examples/order_notional_vs_trade_notional_gap_change_2026.md"
+
+[[candidates]]
+factor = "close_vwap_churn_interaction"
+card = "research_cards/examples/close_vwap_churn_interaction_2026.md"
+
+[[candidates]]
+factor = "close_vwap_churn_interaction_change"
+card = "research_cards/examples/close_vwap_churn_interaction_change_2026.md"

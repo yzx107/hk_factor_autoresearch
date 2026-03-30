@@ -12,18 +12,25 @@ approved_factor_ids:
   - order_trade_event_ratio_change_v1
   - order_trade_notional_ratio_v1
   - order_trade_notional_ratio_change_v1
+  - order_unique_trade_participation_gap_v1
+  - order_unique_trade_participation_gap_change_v1
+  - order_notional_vs_trade_notional_gap_v1
+  - order_notional_vs_trade_notional_gap_change_v1
+  - close_vwap_churn_interaction_v1
+  - close_vwap_churn_interaction_change_v1
 rejected_factor_ids: []
 baseline_refs:
   - structural_activity_proxy
   - order_lifecycle_churn
-current_best_variant: order_trade_event_ratio_change
+current_best_variant: close_vwap_churn_interaction_change
 known_failure_modes:
   - 容易退化为 activity 或 churn 的线性组合
   - 在低成交和低订单覆盖日中 ratio 容易不稳定
+  - 交互项容易把尾盘噪声和覆盖差异误判成经济压力
 forbidden_semantic_assumptions:
   - no_trade_side_truth
   - no_broker_identity_truth
   - no_ordertype_truth
   - no_queue_semantics
 status: active
-notes: 当前 family 只依赖 phase_a_core 的 daily agg，不使用 caveat-only 字段。
+notes: 当前 family 只依赖 phase_a_core 的 daily agg，不使用 caveat-only 字段；已扩到 ratio、gap 和 interaction 三类原型，当前 anchor-date scoreboard 里 `close_vwap_churn_interaction_change` 站位最高。

@@ -28,4 +28,10 @@ factors = [
   "order_trade_event_ratio_change",
   "order_trade_notional_ratio",
   "order_trade_notional_ratio_change",
+  "order_unique_trade_participation_gap",
+  "order_unique_trade_participation_gap_change",
+  "order_notional_vs_trade_notional_gap",
+  "order_notional_vs_trade_notional_gap_change",
+  "close_vwap_churn_interaction",
+  "close_vwap_churn_interaction_change",
 ]

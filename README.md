@@ -23,6 +23,7 @@
 - `data_contracts/caveat_lane.md`：说明哪些字段只能走 `phase_a_caveat_lane`
 - `diagnostics/`：去冗余、切片和失败知识化这类诊断层
 - `factor_contracts/`：单因子 metadata 合同
+- `factor_specs/`：可批量生成 Gate A 候选的结构化规格
 - `factor_families/`：机制家族 yaml，补充 family 级研究视角
 - `gates/`：研究晋级门和 promotion policy
 - `research_cards/`：研究卡模板和 smoke 示例
@@ -31,6 +32,7 @@
 - `configs/autoresearch_phase_a.toml`：固定候选池配置
 - `cache/daily_agg/`：从上游 verified 生成的本地逐日聚合缓存
 - `harness/run_phase_a.py`：最小 autoresearch 风格实验入口
+- `harness/generate_factor_batch.py`：从 `factor_specs/*.toml` 批量生成候选
 - `harness/run_pre_eval.py`：固定 forward-return pre-eval
 - `harness/autoresearch_cycle.py`：端到端 cycle runner
 - `registry/`：append-only 实验留痕骨架
@@ -128,6 +130,13 @@ python3 harness/export_forward_labels.py --year 2026
 
 ```bash
 python3 harness/autoresearch_cycle.py
+```
+
+从规格批量生成一组 Gate A 候选：
+
+```bash
+python3 harness/generate_factor_batch.py \
+  --spec factor_specs/order_trade_interaction_batch.toml
 ```
 
 候选板会额外写出：

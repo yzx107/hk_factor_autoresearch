@@ -40,6 +40,7 @@
 ## Agent 可以改什么
 
 - 新增或修改 `research_cards/`
+- 新增或修改 `factor_specs/`
 - 新增或修改 `factor_defs/`、`transforms/`、`combos/`
 - 维护 `factor_contracts/`、`factor_families/` 和 family registry
 - 在 `configs/` 下添加派生 run 配置，但不能改冻结 baseline
@@ -47,6 +48,7 @@
 
 单次实验默认只允许改很窄的一层：
 - 一张 research card
+- 一个 factor spec batch，或一次很小的候选生成
 - 一个 factor definition，或一次很小的 transform/combo 改动
 - 同一轮实验里不改 harness
 
