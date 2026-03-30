@@ -6,6 +6,21 @@ import polars as pl
 
 from factor_defs.change_support import build_change_signal, build_change_signal_from_loader
 
+FACTOR_ID = "close_vwap_gap_intensity_change_v1"
+FACTOR_FAMILY = "close_vwap_pressure"
+MECHANISM = "Measure day-over-day acceleration in close-like versus VWAP dislocation."
+INPUT_DEPENDENCIES = ["date", "source_file", "Time", "row_num_in_file", "Price", "Volume"]
+RESEARCH_UNIT = "date_x_instrument_key"
+HORIZON_SCOPE = "30m_to_1d"
+VERSION = "v1"
+TRANSFORM_CHAIN = ["level", "one_day_difference"]
+EXPECTED_REGIME = "works better when end-of-day price pressure is not fully resolved"
+FORBIDDEN_SEMANTIC_ASSUMPTIONS = [
+    "no_trade_side_truth",
+    "no_broker_identity_truth",
+    "no_queue_semantics",
+]
+
 INPUT_TABLE = "verified_trades"
 OUTPUT_COLUMN = "close_vwap_gap_intensity_change_score"
 LOOKBACK_STEPS = 1

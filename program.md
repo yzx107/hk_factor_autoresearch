@@ -10,6 +10,7 @@
 - 人主要维护 `program.md`
 - agent 只在狭窄的 mutable surface 内工作
 - 所有实验都要走同一套 harness 和 append-only registry
+- 每个正式候选都要有 factor contract，并归属到一个 family
 
 ## 不可变 Layer 0
 
@@ -36,6 +37,7 @@
 
 - 新增或修改 `research_cards/`
 - 新增或修改 `factor_defs/`、`transforms/`、`combos/`
+- 维护 `factor_contracts/` 和 family registry
 - 在 `configs/` 下添加派生 run 配置，但不能改冻结 baseline
 - 追加 experiment rows 和 lineage entries
 
@@ -60,6 +62,7 @@
 4. `allow_with_caveat` 仍然必须人工复核。
 5. 失败实验必须保留在 registry 中。
 6. 给同一 idea 换名字不等于重置 lineage。
+7. 正式候选必须登记 factor family，并显式写出 forbidden semantic assumptions。
 
 ## Autoresearch 循环
 

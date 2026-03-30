@@ -18,6 +18,8 @@
 
 现在 repo 里有什么：
 - `data_contracts/`：固定字段、年份、timing 边界
+- `factor_contracts/`：单因子 metadata 合同
+- `gates/`：研究晋级门和 promotion policy
 - `research_cards/`：研究卡模板和 smoke 示例
 - `gatekeeper/gate_a_data.py`：最小 Gate A 合法性检查
 - `configs/baseline_phase_a.toml`：冻结 baseline 配置
@@ -27,6 +29,12 @@
 - `harness/run_pre_eval.py`：固定 forward-return pre-eval
 - `harness/autoresearch_cycle.py`：端到端 cycle runner
 - `registry/`：append-only 实验留痕骨架
+
+新增的研究工厂控制层：
+- `factor_contracts/schema.md`：统一说明每个因子必须声明什么
+- `registry/factor_families.tsv`：把候选按机制家族登记，而不是只看单次实验
+- `registry/failure_taxonomy.md`：统一失败分类，避免 registry 变成墓地
+- `gates/promotion_policy.md`：把 Gate A/B/C/D/E 的目标和输出固定下来
 
 固定 pre-eval 当前输出：
 - rank IC

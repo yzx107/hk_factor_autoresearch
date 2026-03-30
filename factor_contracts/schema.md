@@ -1,0 +1,109 @@
+# Factor Contract Schema
+
+`factor contract` 用来把“一个因子到底是什么、依赖什么、明确不假设什么”固定下来。
+
+在这个 repo 里，单个因子的合同由三部分组成：
+- research card front matter：记录研究动机、边界、失败方式
+- factor module metadata：记录可执行实现的统一元数据
+- family registry：记录该因子属于哪个机制家族
+
+## 适用范围
+
+Phase A 下，所有进入 `factor_defs/` 的正式候选都应当导出统一 metadata。
+示例和实验草稿也应尽量遵守同一格式。
+
+## 必填 metadata
+
+每个 factor module 应至少导出以下常量：
+
+- `FACTOR_ID`
+  一个稳定的、不会因为输出列名变化而频繁变化的标识
+- `FACTOR_FAMILY`
+  机制家族标识，例如 `close_vwap_pressure`
+- `MECHANISM`
+  一句话说明该因子到底试图捕捉什么
+- `INPUT_DEPENDENCIES`
+  因子真正依赖的上游字段或聚合字段
+- `RESEARCH_UNIT`
+  当前研究粒度，例如 `date_x_instrument_key`
+- `HORIZON_SCOPE`
+  该因子的目标持有区间
+- `VERSION`
+  公式版本，例如 `v1`
+- `TRANSFORM_CHAIN`
+  level、change、clip、scale 等变换链
+- `EXPECTED_REGIME`
+  最可能工作的状态描述
+- `FORBIDDEN_SEMANTIC_ASSUMPTIONS`
+  这个因子明确没有做出的语义假设
+
+## 推荐 metadata
+
+如果后续要扩更严格的 Gate B/C/D，可以继续补：
+
+- `BENCHMARK_GROUP`
+- `PRIMARY_LABEL`
+- `REGIME_SLICES`
+- `FAILURE_TAGS`
+- `PROMOTION_NOTES`
+
+## 与 research card 的关系
+
+research card 负责回答：
+- 为什么研究
+- 用了哪些字段
+- 边界是什么
+- 可能怎么失败
+
+factor contract 负责回答：
+- 代码实现的对象是谁
+- 同一家族里的版本链是什么
+- 后续该拿什么去比较
+- 它明确没有越过哪些语义边界
+
+两者不能互相替代。
+
+## 推荐字段格式
+
+字符串字段：
+- `FACTOR_ID`
+- `FACTOR_FAMILY`
+- `MECHANISM`
+- `RESEARCH_UNIT`
+- `HORIZON_SCOPE`
+- `VERSION`
+- `EXPECTED_REGIME`
+
+列表字段：
+- `INPUT_DEPENDENCIES`
+- `TRANSFORM_CHAIN`
+- `FORBIDDEN_SEMANTIC_ASSUMPTIONS`
+
+## 最小示例
+
+```python
+FACTOR_ID = "close_vwap_gap_intensity_v1"
+FACTOR_FAMILY = "close_vwap_pressure"
+MECHANISM = "Measure unresolved end-of-day dislocation versus same-day VWAP."
+INPUT_DEPENDENCIES = ["date", "source_file", "Time", "row_num_in_file", "Price", "Volume"]
+RESEARCH_UNIT = "date_x_instrument_key"
+HORIZON_SCOPE = "30m_to_1d"
+VERSION = "v1"
+TRANSFORM_CHAIN = ["level"]
+EXPECTED_REGIME = "works better when end-of-day price pressure is not fully resolved"
+FORBIDDEN_SEMANTIC_ASSUMPTIONS = [
+    "no_trade_side_truth",
+    "no_broker_identity_truth",
+    "no_queue_semantics",
+]
+```
+
+## Phase A 强制边界
+
+contract 不能写出任何与 Layer 0 边界冲突的假设，尤其不能暗示：
+- `TradeDir` 是 confirmed signed side
+- `BrokerNo` 是 confirmed broker identity alpha
+- `Level` 或 `VolumePre` 已经可用于 queue semantics
+- `2025` 可以做 precise lag / strict ordering / queue depletion
+
+如果一个因子必须依赖这些假设，它就不属于当前 Phase A factor contract。

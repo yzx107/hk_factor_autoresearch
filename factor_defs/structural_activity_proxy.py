@@ -9,6 +9,21 @@ import polars as pl
 
 from factor_defs.change_support import collect_daily_frames_from_loader
 
+FACTOR_ID = "structural_activity_proxy_v1"
+FACTOR_FAMILY = "activity_pressure"
+MECHANISM = "Measure cross-sectional activity pressure from turnover and trade-count intensity."
+INPUT_DEPENDENCIES = ["date", "source_file", "Price", "Volume"]
+RESEARCH_UNIT = "date_x_instrument_key"
+HORIZON_SCOPE = "30m_to_1d"
+VERSION = "v1"
+TRANSFORM_CHAIN = ["level"]
+EXPECTED_REGIME = "works better when attention or activity pressure changes quickly"
+FORBIDDEN_SEMANTIC_ASSUMPTIONS = [
+    "no_trade_side_truth",
+    "no_broker_identity_truth",
+    "no_queue_semantics",
+]
+
 INPUT_TABLE = "verified_trades"
 OUTPUT_COLUMN = "structural_activity_score"
 SOURCE_COLUMNS = ["date", "source_file", "Price", "Volume"]

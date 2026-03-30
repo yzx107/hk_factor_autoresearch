@@ -6,6 +6,22 @@ import polars as pl
 
 from factor_defs.change_support import build_change_signal, build_change_signal_from_loader
 
+FACTOR_ID = "order_lifecycle_churn_change_v1"
+FACTOR_FAMILY = "order_lifecycle_pressure"
+MECHANISM = "Measure day-over-day acceleration in repeated events per unique project-level OrderId."
+INPUT_DEPENDENCIES = ["date", "source_file", "OrderId", "Price", "Volume"]
+RESEARCH_UNIT = "date_x_instrument_key"
+HORIZON_SCOPE = "30m_to_1d"
+VERSION = "v1"
+TRANSFORM_CHAIN = ["level", "one_day_difference"]
+EXPECTED_REGIME = "works better when liquidity contestation rises faster than simple turnover"
+FORBIDDEN_SEMANTIC_ASSUMPTIONS = [
+    "no_trade_side_truth",
+    "no_broker_identity_truth",
+    "no_ordertype_truth",
+    "no_queue_semantics",
+]
+
 INPUT_TABLE = "verified_orders"
 OUTPUT_COLUMN = "order_lifecycle_churn_change_score"
 LOOKBACK_STEPS = 1
