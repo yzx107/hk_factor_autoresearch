@@ -20,3 +20,12 @@ factors = ["order_lifecycle_churn"]
 [groups.close_vwap_pressure]
 description = "End-of-day dislocation baseline built from close-like versus VWAP."
 factors = ["close_vwap_gap_intensity"]
+
+[groups.order_trade_interaction_pressure]
+description = "Orders-versus-trades interaction challengers built from daily cache joins."
+factors = [
+  "order_trade_event_ratio",
+  "order_trade_event_ratio_change",
+  "order_trade_notional_ratio",
+  "order_trade_notional_ratio_change",
+]

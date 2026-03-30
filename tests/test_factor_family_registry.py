@@ -8,16 +8,22 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 FACTOR_FAMILY_DIR = ROOT / "factor_families"
 TEMPLATE_PATH = ROOT / "research_cards" / "TEMPLATE.md"
-FACTOR_MODULES = [
-    "avg_trade_notional_bias",
-    "avg_trade_notional_bias_change",
-    "close_vwap_gap_intensity",
-    "close_vwap_gap_intensity_change",
-    "order_lifecycle_churn",
-    "order_lifecycle_churn_change",
-    "structural_activity_proxy",
-    "structural_activity_change",
-]
+FACTOR_DIR = ROOT / "factor_defs"
+SKIP_MODULES = {"change_support", "example_structural_factor", "order_trade_interaction_support"}
+
+
+def _factor_modules() -> list[str]:
+    names: list[str] = []
+    for path in sorted(FACTOR_DIR.glob("*.py")):
+        if path.stem.startswith("__") or path.stem in SKIP_MODULES:
+            continue
+        module = importlib.import_module(f"factor_defs.{path.stem}")
+        if hasattr(module, "FACTOR_ID"):
+            names.append(path.stem)
+    return names
+
+
+FACTOR_MODULES = _factor_modules()
 
 
 class FactorFamilyRegistryTest(unittest.TestCase):

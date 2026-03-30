@@ -16,3 +16,4 @@ Phase A 最小要求：
 - `trade_notional_composition.yaml`
 - `order_lifecycle_pressure.yaml`
 - `close_vwap_pressure.yaml`
+- `order_trade_interaction_pressure.yaml`

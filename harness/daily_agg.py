@@ -50,6 +50,18 @@ def missing_daily_agg_dates(table_name: str, dates: list[str]) -> list[str]:
     return [date for date in dates if not daily_agg_partition_path(table_name, date).exists()]
 
 
+def missing_named_daily_agg_dates(
+    table_columns: dict[str, list[str]],
+    dates: list[str],
+) -> dict[str, list[str]]:
+    missing: dict[str, list[str]] = {}
+    for table_name in table_columns:
+        table_missing = missing_daily_agg_dates(table_name, dates)
+        if table_missing:
+            missing[table_name] = table_missing
+    return missing
+
+
 def has_daily_agg(table_name: str, dates: list[str]) -> bool:
     return not missing_daily_agg_dates(table_name, dates)
 
@@ -63,3 +75,17 @@ def load_daily_agg_lazy(
     if columns:
         scan = scan.select(list(dict.fromkeys(columns)))
     return scan
+
+
+def build_daily_agg_cache_loader(default_columns: dict[str, list[str]] | None = None):
+    column_map = dict(default_columns or {})
+
+    def _load(
+        table_name: str,
+        dates: list[str],
+        columns: list[str] | None = None,
+    ) -> pl.LazyFrame:
+        selected = columns if columns is not None else column_map.get(table_name)
+        return load_daily_agg_lazy(table_name, dates, selected)
+
+    return _load

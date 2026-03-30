@@ -18,7 +18,12 @@ if str(ROOT) not in sys.path:
 
 from evaluation.diagnostics import build_signal_diagnostics
 from gatekeeper.gate_a_data import load_research_card
-from harness.daily_agg import load_daily_agg_lazy, missing_daily_agg_dates
+from harness.daily_agg import (
+    build_daily_agg_cache_loader,
+    load_daily_agg_lazy,
+    missing_daily_agg_dates,
+    missing_named_daily_agg_dates,
+)
 from harness.run_phase_a import build_record, append_experiment_log, append_lineage
 from harness.verified_reader import load_verified_lazy, previous_available_dates
 
@@ -67,6 +72,10 @@ def _build_partition_loader(table_name: str):
         return load_verified_lazy(table_name, dates, columns)
 
     return _load
+
+
+def _joined_table_name(table_names: list[str]) -> str:
+    return "+".join(sorted(dict.fromkeys(table_names)))
 
 
 def _factor_kwargs(compute_signal, *, target_dates: list[str], previous_date_map: dict[str, str]) -> dict[str, object]:
@@ -120,14 +129,37 @@ def run_verified_factor_experiment(
     source_mode = "verified_raw"
     source_table_name = table_name
     loaded_columns = required_columns
+    input_columns_by_table: dict[str, list[str]] = {}
     daily_table_name = getattr(module, "DAILY_AGG_TABLE", "")
-    if daily_table_name and hasattr(module, "compute_signal_from_daily"):
+    daily_table_map = dict(getattr(module, "DAILY_AGG_TABLES", {}))
+    if daily_table_map and hasattr(module, "compute_signal_from_cache_loader"):
+        missing_cache = missing_named_daily_agg_dates(daily_table_map, load_dates)
+        if not missing_cache:
+            source_mode = "daily_agg_multi"
+            source_table_name = _joined_table_name(list(daily_table_map))
+            input_columns_by_table = {name: list(columns) for name, columns in daily_table_map.items()}
+            signal_lazy = module.compute_signal_from_cache_loader(
+                cache_loader=build_daily_agg_cache_loader(daily_table_map),
+                **_factor_kwargs(
+                    module.compute_signal_from_cache_loader,
+                    target_dates=dates,
+                    previous_date_map=previous_date_map,
+                ),
+            )
+        else:
+            missing_text = ", ".join(
+                f"{name}[{','.join(table_dates)}]"
+                for name, table_dates in sorted(missing_cache.items())
+            )
+            raise FileNotFoundError(f"Missing daily agg cache partitions for `{factor_name}`: {missing_text}")
+    elif daily_table_name and hasattr(module, "compute_signal_from_daily"):
         daily_columns = list(getattr(module, "DAILY_SOURCE_COLUMNS", []))
         missing_cache = missing_daily_agg_dates(daily_table_name, load_dates)
         if not missing_cache:
             source_mode = "daily_agg"
             source_table_name = daily_table_name
             loaded_columns = daily_columns
+            input_columns_by_table = {daily_table_name: daily_columns}
             daily_frame = load_daily_agg_lazy(daily_table_name, load_dates, daily_columns)
             signal_lazy = module.compute_signal_from_daily(
                 daily_frame,
@@ -181,6 +213,7 @@ def run_verified_factor_experiment(
         "loaded_dates": load_dates,
         "card_required_fields": required_columns,
         "input_columns": loaded_columns,
+        "input_columns_by_table": input_columns_by_table,
         "output_rows": signal_df.height,
         "output_columns": signal_df.columns,
         "artifacts": {
