@@ -17,6 +17,7 @@
 - 本 repo 不得重定义上游字段语义，也不能反向改写上游 Layer 0
 
 现在 repo 里有什么：
+- `ARCHITECTURE_ADDENDUM.md`：研究工厂从“能跑”升级到“可持续 feature discovery”的补充架构
 - `data_contracts/`：固定字段、年份、timing 边界
 - `factor_contracts/`：单因子 metadata 合同
 - `gates/`：研究晋级门和 promotion policy
@@ -31,6 +32,7 @@
 - `registry/`：append-only 实验留痕骨架
 
 新增的研究工厂控制层：
+- `ARCHITECTURE_ADDENDUM.md`：定义 factor contract、family 视角、promotion gates、失败知识化、regime slicing 的升级方向
 - `factor_contracts/schema.md`：统一说明每个因子必须声明什么
 - `registry/factor_families.tsv`：把候选按机制家族登记，而不是只看单次实验
 - `registry/failure_taxonomy.md`：统一失败分类，避免 registry 变成墓地

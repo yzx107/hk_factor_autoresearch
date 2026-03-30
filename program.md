@@ -8,6 +8,7 @@
 
 落地到本项目：
 - 人主要维护 `program.md`
+- 当研究工厂制度升级时，同时维护 `ARCHITECTURE_ADDENDUM.md`
 - agent 只在狭窄的 mutable surface 内工作
 - 所有实验都要走同一套 harness 和 append-only registry
 - 每个正式候选都要有 factor contract，并归属到一个 family

@@ -44,6 +44,10 @@ Ext = "unused"
 
 解释这个效应为什么可能在港股里存在。
 
+## Observable Proxies
+
+列出这个机制在当前 admissible 数据里能落成哪些可观测代理。
+
 ## Holding Horizon
 
 重述计划持有周期，并解释它为什么与信号匹配。
@@ -59,6 +63,26 @@ Ext = "unused"
 ## Failure Modes
 
 列出这个信号可能如何失效、泄漏或坍塌。
+
+## Expected Winning Regimes
+
+写明你预期它在哪些 regime 更强。
+
+## Expected Failure Regimes
+
+写明你预期它在哪些 regime 更弱或失效。
+
+## Why Incremental vs Baselines
+
+解释为什么这个想法不是已有 baseline 或已有家族成员的换皮版本。
+
+## Forbidden Semantic Assumptions
+
+明确列出没有使用的隐含语义，例如 aggressor truth、queue semantics、broker identity truth。
+
+## Promotion Target
+
+说明这次实验的目标是 `exploratory only`、`family screening`、`baseline challenger` 或 `promotion candidate`。
 
 ## Expected Risks
 
