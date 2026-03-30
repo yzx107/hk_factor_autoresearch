@@ -7,7 +7,7 @@
 - 冻结 Layer 0 边界
 - 先写 research card，再落因子实现
 - 固定回测与评估接口，不在普通实验里漂移
-- 只自动化 Gate A 数据合法性检查
+- Gate A 已自动化，Gate B 有最小正式 runner
 - lineage 和 experiment registry 采用 append-only
 - 实验必须走固定 harness，不允许临时 shell 拼装流程
 
@@ -34,6 +34,7 @@
 - `harness/run_phase_a.py`：最小 autoresearch 风格实验入口
 - `harness/generate_factor_batch.py`：从 `factor_specs/*.toml` 批量生成候选
 - `harness/run_pre_eval.py`：固定 forward-return pre-eval
+- `harness/run_gate_b.py`：最小正式 Gate B statistical validity runner
 - `harness/autoresearch_cycle.py`：端到端 cycle runner
 - `registry/`：append-only 实验留痕骨架
 
@@ -120,6 +121,13 @@ python3 harness/run_pre_eval.py \
   --factor structural_activity_proxy
 ```
 
+对 shortlist 跑最小正式 Gate B：
+
+```bash
+python3 harness/run_gate_b.py \
+  --factor close_vwap_gap_intensity_change close_vwap_churn_interaction_change
+```
+
 导出共享 labels 供 pre-eval 复用：
 
 ```bash
@@ -155,6 +163,12 @@ runs/<experiment_id>/diagnostics_summary.json
 
 ```text
 runs/<pre_eval_id>/pre_eval_summary.json
+```
+
+每个 Gate B run 会写：
+
+```text
+runs/<gate_b_id>/gate_b_summary.json
 ```
 
 每个 autoresearch cycle 会写：

@@ -78,6 +78,14 @@ python3 harness/run_pre_eval.py \
   --notes "fixed forward-return pre-eval"
 ```
 
+最小正式 Gate B：
+
+```bash
+python3 harness/run_gate_b.py \
+  --factor close_vwap_gap_intensity_change close_vwap_churn_interaction_change \
+  --notes "initial gate b shortlist"
+```
+
 导出共享 labels：
 
 ```bash
@@ -98,6 +106,9 @@ python3 harness/autoresearch_cycle.py \
 每个 pre-eval 会写出：
 - `pre_eval_summary.json`
 - `label_preview.json`
+
+每个 Gate B run 会写出：
+- `gate_b_summary.json`
 
 每个 cycle 会写出：
 - `cycle_summary.json`

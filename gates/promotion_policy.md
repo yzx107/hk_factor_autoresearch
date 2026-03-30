@@ -4,7 +4,8 @@
 
 当前状态：
 - Gate A 已实装
-- Gate B 之后仍以制度定义为主，代码实现是逐步补齐
+- Gate B 有最小正式 runner
+- Gate C 之后仍以制度定义为主，代码实现是逐步补齐
 
 ## Gate A: Data Admissibility
 
@@ -52,7 +53,8 @@
 
 当前状态：
 - `pre_eval` 已有基础件
-- 正式 Gate B policy 仍待固化为 machine-readable rules
+- `harness/run_gate_b.py` 已把最小 policy 固化为 machine-readable rules
+- 当前 Gate B 仍是轻量统计 gate，不等于正式组合回测
 
 ## Gate C: Robustness
 
@@ -126,7 +128,8 @@
 2. 过 Gate A
 3. materialize factor output
 4. 跑 Gate B-lite pre-eval
-5. 进入 scoreboard
-6. 再决定是否进入更正式的 Gate B/C/D/E
+5. 对 shortlist 跑正式 Gate B
+6. 进入 scoreboard
+7. 再决定是否进入更正式的 Gate C/D/E
 
 这套 policy 的目的不是把每个因子都一次性判死刑，而是让“为什么保留、为什么淘汰、为什么暂缓”变得可追踪。

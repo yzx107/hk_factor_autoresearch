@@ -16,6 +16,7 @@ COMPARISON_LOG = ROOT / "registry" / "comparison_log.tsv"
 PRE_EVAL_LOG = ROOT / "registry" / "pre_eval_log.tsv"
 SCOREBOARD_LOG = ROOT / "registry" / "scoreboard_log.tsv"
 CYCLE_LOG = ROOT / "registry" / "autoresearch_cycle_log.tsv"
+GATE_B_LOG = ROOT / "registry" / "gate_b_log.tsv"
 
 
 @dataclass(frozen=True)
@@ -28,6 +29,7 @@ class StatusSnapshot:
     latest_data_run: dict[str, Any] | None
     latest_comparison: dict[str, Any] | None
     latest_pre_eval: dict[str, Any] | None
+    latest_gate_b: dict[str, Any] | None
     latest_scoreboard: dict[str, Any] | None
     latest_cycle: dict[str, Any] | None
 
@@ -78,6 +80,14 @@ def read_cycle_log(path: Path = CYCLE_LOG) -> list[dict[str, str]]:
         return list(reader)
 
 
+def read_gate_b_log(path: Path = GATE_B_LOG) -> list[dict[str, str]]:
+    if not path.exists():
+        return []
+    with path.open("r", encoding="utf-8", newline="") as handle:
+        reader = csv.DictReader(handle, delimiter="\t")
+        return list(reader)
+
+
 def _latest_data_run(entries: list[dict[str, str]]) -> dict[str, Any] | None:
     for entry in reversed(entries):
         summary_path = Path(entry["run_dir"]) / "data_run_summary.json"
@@ -112,6 +122,8 @@ def build_status_snapshot(entries: list[dict[str, str]]) -> StatusSnapshot:
     latest_comparison = comparisons[-1] if comparisons else None
     pre_evals = read_pre_eval_log()
     latest_pre_eval = pre_evals[-1] if pre_evals else None
+    gate_b_entries = read_gate_b_log()
+    latest_gate_b = gate_b_entries[-1] if gate_b_entries else None
     scoreboards = read_scoreboard_log()
     latest_scoreboard = scoreboards[-1] if scoreboards else None
     cycles = read_cycle_log()
@@ -125,6 +137,7 @@ def build_status_snapshot(entries: list[dict[str, str]]) -> StatusSnapshot:
         latest_data_run=latest_data_run,
         latest_comparison=latest_comparison,
         latest_pre_eval=latest_pre_eval,
+        latest_gate_b=latest_gate_b,
         latest_scoreboard=latest_scoreboard,
         latest_cycle=latest_cycle,
     )
@@ -184,6 +197,15 @@ def _text_status(snapshot: StatusSnapshot, entries: list[dict[str, str]], lineag
             f"joined_rows={pre_eval['joined_rows']} "
             f"mean_abs_rank_ic={pre_eval['mean_abs_rank_ic']}"
         )
+    if snapshot.latest_gate_b:
+        gate_b = snapshot.latest_gate_b
+        lines.append(
+            "latest_gate_b "
+            f"id={gate_b['gate_b_id']} "
+            f"factor={gate_b['factor_name']} "
+            f"decision={gate_b['decision']} "
+            f"mean_abs_rank_ic={gate_b['mean_abs_rank_ic']}"
+        )
     if snapshot.latest_scoreboard:
         scoreboard = snapshot.latest_scoreboard
         lines.append(
@@ -221,6 +243,7 @@ def main() -> int:
     snapshot = build_status_snapshot(entries)
     comparisons = read_comparison_log()
     pre_evals = read_pre_eval_log()
+    gate_b_entries = read_gate_b_log()
     scoreboards = read_scoreboard_log()
     cycles = read_cycle_log()
     if args.json:
@@ -236,12 +259,14 @@ def main() -> int:
                         "latest_data_run": snapshot.latest_data_run,
                         "latest_comparison": snapshot.latest_comparison,
                         "latest_pre_eval": snapshot.latest_pre_eval,
+                        "latest_gate_b": snapshot.latest_gate_b,
                         "latest_scoreboard": snapshot.latest_scoreboard,
                         "latest_cycle": snapshot.latest_cycle,
                     },
                     "lineage": lineage,
                     "comparisons": comparisons[-args.limit :],
                     "pre_evals": pre_evals[-args.limit :],
+                    "gate_b": gate_b_entries[-args.limit :],
                     "scoreboards": scoreboards[-args.limit :],
                     "cycles": cycles[-args.limit :],
                     "recent": entries[-args.limit :],
