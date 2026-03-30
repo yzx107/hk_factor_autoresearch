@@ -13,14 +13,18 @@ class ScoreboardReportTest(unittest.TestCase):
             "factor_count": 1,
             "comparison_count": 0,
             "pre_eval_count": 1,
+            "baseline_factors": [],
             "factor_board": [
                 {
                     "factor_name": "f1",
+                    "factor_family": "activity_pressure",
+                    "baseline_role": "challenger",
                     "table_name": "verified_trades",
                     "output_rows": 10,
                     "distinct_instruments": 5,
                     "mean_abs_peer_corr": 0.0,
                     "mean_top_overlap_count": 0.0,
+                    "mean_abs_baseline_corr": 0.25,
                     "mean_abs_rank_ic": 0.12,
                     "mean_rank_ic": 0.12,
                     "mean_normalized_mutual_info": 0.03,
@@ -28,6 +32,12 @@ class ScoreboardReportTest(unittest.TestCase):
                     "mean_coverage_ratio": 1.0,
                     "evaluated_dates": ["2026-03-13"],
                     "joined_rows": 10,
+                    "incremental_hint": "potential_incremental",
+                    "regime_slices": {
+                        "year_grade": [
+                            {"slice_value": "fine_ok", "mean_abs_rank_ic": 0.12}
+                        ]
+                    },
                 }
             ],
             "comparisons": [],
@@ -38,6 +48,8 @@ class ScoreboardReportTest(unittest.TestCase):
         self.assertIn("f1", text)
         self.assertIn("mean_abs_rank_ic", text)
         self.assertIn("mean_nmi", text)
+        self.assertIn("incremental_hint=`potential_incremental`", text)
+        self.assertIn("year_grade=`fine_ok:0.1200`", text)
 
 
 if __name__ == "__main__":

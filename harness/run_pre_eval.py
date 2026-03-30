@@ -21,6 +21,7 @@ from evaluation.pre_eval import (
     build_forward_return_labels,
     build_pre_eval_summary,
 )
+from diagnostics.regime_slices import build_regime_slice_frame
 from harness.compare_factors import read_experiment_log
 from harness.daily_agg import load_daily_agg_lazy, missing_daily_agg_dates
 from harness.verified_reader import load_verified_lazy, next_available_dates
@@ -157,7 +158,14 @@ def run_pre_eval_for_factor(
             )
             close_like = build_close_like_frame(trades)
         labels_df = build_forward_return_labels(close_like, next_date_map=next_map, label_name=LABEL_NAME)
-    summary = build_pre_eval_summary(factor_df, score_column=score_column, labels_df=labels_df, label_column=LABEL_NAME)
+    date_annotations = build_regime_slice_frame(factor_dates)
+    summary = build_pre_eval_summary(
+        factor_df,
+        score_column=score_column,
+        labels_df=labels_df,
+        date_annotations=date_annotations,
+        label_column=LABEL_NAME,
+    )
 
     created_at = datetime.now(timezone.utc).isoformat()
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")

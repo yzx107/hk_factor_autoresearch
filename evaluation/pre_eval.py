@@ -8,6 +8,8 @@ from typing import Any
 
 import polars as pl
 
+from diagnostics.regime_slices import build_regime_slice_summary
+
 LABEL_NAME = "forward_return_1d_close_like"
 LABEL_SOURCE = "verified_trades_last_print_close_like_v1"
 TOP_FRACTION = 0.1
@@ -163,6 +165,7 @@ def build_pre_eval_summary(
     *,
     score_column: str,
     labels_df: pl.DataFrame,
+    date_annotations: pl.DataFrame | None = None,
     label_column: str = LABEL_NAME,
     top_fraction: float = TOP_FRACTION,
     mi_bin_count: int = MI_BIN_COUNT,
@@ -298,6 +301,8 @@ def build_pre_eval_summary(
         mean_top_bottom_spread = _average(spread_values)
         mean_coverage_ratio = _average(coverage_values)
 
+    regime_slices = build_regime_slice_summary(per_date_rows, date_annotations)
+
     return {
         "label_name": label_column,
         "label_source": labels_df["label_source"][0] if not labels_df.is_empty() else LABEL_SOURCE,
@@ -316,6 +321,7 @@ def build_pre_eval_summary(
         "mean_normalized_mutual_info": mean_normalized_mutual_info,
         "mean_top_bottom_spread": mean_top_bottom_spread,
         "mean_coverage_ratio": mean_coverage_ratio,
+        "regime_slices": regime_slices,
         "per_date": per_date_rows,
         "joined_preview": joined_preview,
     }

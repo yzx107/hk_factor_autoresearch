@@ -107,6 +107,7 @@ def _pre_eval_row(entry: dict[str, str] | None) -> dict[str, Any] | None:
         "mean_normalized_mutual_info": summary.get("mean_normalized_mutual_info"),
         "mean_top_bottom_spread": summary["mean_top_bottom_spread"],
         "mean_coverage_ratio": summary["mean_coverage_ratio"],
+        "regime_slices": summary.get("regime_slices", {}),
     }
 
 
@@ -222,6 +223,7 @@ def _derive_factor_board(
                     mean_abs_rank_ic=pre_eval.get("mean_abs_rank_ic"),
                     mean_abs_baseline_corr=baseline_metrics["mean_abs_baseline_corr"],
                 ),
+                "regime_slices": pre_eval.get("regime_slices", {}),
                 "mechanism": factor["mechanism"],
                 "transform_chain": factor["transform_chain"],
                 "forbidden_semantic_assumptions": factor["forbidden_semantic_assumptions"],
@@ -291,6 +293,7 @@ def _render_markdown(payload: dict[str, Any]) -> str:
         if row["mean_abs_rank_ic"] is None:
             lines.append(f"- `{row['factor_name']}` pre_eval missing")
             continue
+        incremental_hint = row.get("incremental_hint", "unknown")
         lines.append(
             "- "
             f"`{row['factor_name']}` "
@@ -326,6 +329,29 @@ def _render_markdown(payload: dict[str, Any]) -> str:
         lines.append("")
         for item in payload["missing_comparisons"]:
             lines.append(f"- `{item}`")
+    lines.append("")
+    lines.append("## Regime Notes")
+    lines.append("")
+    for row in payload["factor_board"]:
+        regime_slices = row.get("regime_slices", {})
+        if not regime_slices:
+            lines.append(f"- `{row['factor_name']}` regime_slices=`missing`")
+            continue
+        parts: list[str] = []
+        for slice_name in ["year_grade", "market_turnover_regime", "market_volatility_regime"]:
+            entries = regime_slices.get(slice_name, [])
+            if not entries:
+                continue
+            digest = ",".join(
+                f"{item['slice_value']}:{item['mean_abs_rank_ic']:.4f}"
+                for item in entries
+                if item["mean_abs_rank_ic"] is not None
+            )
+            if digest:
+                parts.append(f"{slice_name}=`{digest}`")
+        if not parts:
+            parts.append("regime_slices=`present_but_empty`")
+        lines.append(f"- `{row['factor_name']}` " + " ".join(parts))
     return "\n".join(lines) + "\n"
 
 

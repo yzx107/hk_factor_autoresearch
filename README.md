@@ -37,6 +37,7 @@
 - `ARCHITECTURE_ADDENDUM.md`：定义 factor contract、family 视角、promotion gates、失败知识化、regime slicing 的升级方向
 - `baselines/baseline_registry.toml`：固定 baseline benchmark set
 - `diagnostics/redundancy.py`：把“有信号”和“有增量”分开
+- `diagnostics/regime_slices.py`：把“在哪些状态下有效”也纳入固定诊断
 - `factor_contracts/schema.md`：统一说明每个因子必须声明什么
 - `registry/factor_families.tsv`：把候选按机制家族登记，而不是只看单次实验
 - `registry/failure_taxonomy.md`：统一失败分类，避免 registry 变成墓地
