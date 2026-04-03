@@ -1,0 +1,37 @@
+[inputs]
+year = "2026"
+cache_root = "cache/daily_agg"
+trade_table = "verified_trades_daily"
+order_table = "verified_orders_daily"
+instrument_profile_csv = ""
+control_feature_csv = ""
+start_date = ""
+end_date = ""
+
+[universe]
+max_listing_age_days = 730
+min_observed_days = 20
+size_percentile_min = 0.10
+size_percentile_max = 0.80
+require_non_southbound_proxy = true
+
+[states]
+boundary_lookback_days = 10
+control_lookback_days = 10
+push_lookback_days = 10
+control_build_threshold = 0.80
+control_build_sustain_threshold = 0.72
+boundary_target_percentile = 0.80
+boundary_band_width = 0.08
+push_positive_share_min = 0.60
+push_return_min = 0.05
+push_drawdown_floor = -0.08
+max_gap_sessions = 1
+
+[outputs]
+root = "event_boundary_push/outputs"
+event_universe = "event_universe.parquet"
+event_state_daily = "event_state_daily.parquet"
+event_cases = "event_cases.parquet"
+event_review_pack = "event_review_pack.csv"
+review_top_n = 100

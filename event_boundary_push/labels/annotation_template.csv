@@ -1,0 +1,1 @@
+event_id,ticker,start_date,end_date,annotator,expert_suspect_flag,perceived_path_type,confidence,reason_code_1,reason_code_2,reason_code_3,operator_fingerprint_guess,comment
