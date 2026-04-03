@@ -386,6 +386,8 @@ def build_trade_order_panel(config: EventModuleConfig) -> pl.DataFrame:
     )
 
     panel = panel.join(instrument_meta, on="instrument_key", how="left")
+    if "instrument_key_source_right" in panel.columns:
+        panel = panel.drop("instrument_key_source_right")
     control_features = _load_optional_control_features(config)
     if control_features is not None:
         panel = panel.join(control_features, on=["date", "instrument_key"], how="left")
