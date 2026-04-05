@@ -208,3 +208,36 @@
 - 判断事件窗内是否真的存在明显路径特征
 - 区分控盘形成、洗筹、推进、派发或不明确情形
 - 保留分歧意见和不确定判断
+
+## Ground-Truth Validation
+
+模块附带一个轻量 ground-truth validation 层，目标不是交易回测，而是：
+- 用历史纳入 / 事件样本检查 `event_cases` 的命中率
+- 估计事件的提前量（lead days）
+- 输出没有对应 ground truth 的事件案例，作为噪音 proxy
+
+ground-truth 输入文件建议至少包含：
+- `truth_id`
+- `ticker` 或 `instrument_key`
+- `inclusion_date`
+- 可选 `window_start / window_end`
+- 可选 `event_label / source / notes`
+
+若未提供 `window_start / window_end`：
+- 默认使用 `inclusion_date - lookback_days`
+- 到 `inclusion_date + lag_tolerance_days`
+
+最佳匹配事件按以下优先级选择：
+- `full_path_signal`
+- `boundary_control_setup`
+- `control_push`
+- `boundary_push`
+
+这一步适合回答：
+- 模块是否在历史真实样本前给出事件信号
+- 信号通常提前多少天出现
+- 当前事件集里有多少案例没有对应 ground truth
+
+这一步不回答：
+- 直接交易是否盈利
+- 是否具有 production 可执行性

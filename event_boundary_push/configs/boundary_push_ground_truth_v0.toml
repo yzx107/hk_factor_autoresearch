@@ -1,0 +1,20 @@
+[inputs]
+event_config = "event_boundary_push/configs/boundary_push_event_v0.toml"
+ground_truth_csv = "event_boundary_push/labels/ground_truth_template.csv"
+
+[matching]
+lookback_days = 60
+lag_tolerance_days = 0
+include_event_types = [
+  "full_path_signal",
+  "boundary_control_setup",
+  "control_push",
+  "boundary_push",
+]
+
+[outputs]
+root = "event_boundary_push/outputs"
+matches = "ground_truth_matches.parquet"
+noise_cases = "ground_truth_noise_cases.parquet"
+summary = "ground_truth_validation_summary.json"
+max_noise_cases = 100

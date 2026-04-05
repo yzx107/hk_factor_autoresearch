@@ -1,0 +1,2 @@
+truth_id,ticker,instrument_key,inclusion_date,window_start,window_end,event_label,source,notes
+sample_001,01234,01234,2025-09-08,,,southbound_inclusion,manual_example,replace this template with real historical inclusion/event rows

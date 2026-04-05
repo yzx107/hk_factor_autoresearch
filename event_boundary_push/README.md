@@ -103,3 +103,26 @@ review pack 是事件案例视角，不是单日 candidate 视角。
 - 人工标注空列
 
 更多口径说明见 `event_spec.md`。
+
+## Ground-Truth Validation
+
+模块附带一个轻量 `ground-truth validation harness`，用于把 `event_cases` 和历史纳入 / 特殊事件样本对齐，输出：
+- `ground_truth_matches.parquet`
+- `ground_truth_noise_cases.parquet`
+- `ground_truth_validation_summary.json`
+
+默认配置：
+- `event_boundary_push/configs/boundary_push_ground_truth_v0.toml`
+- `event_boundary_push/labels/ground_truth_template.csv`
+
+最小运行：
+
+```bash
+python3 event_boundary_push/validate_ground_truth.py \
+  --config event_boundary_push/configs/boundary_push_ground_truth_v0.toml
+```
+
+这一步不是交易回测，而是事件命中验证：
+- 看历史纳入 / 事件样本是否被模块提前捕捉
+- 看提前量（lead days）
+- 看哪些 event cases 没有对应 ground truth，可作为噪音 proxy
