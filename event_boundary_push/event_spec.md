@@ -241,3 +241,24 @@ ground-truth 输入文件建议至少包含：
 这一步不回答：
 - 直接交易是否盈利
 - 是否具有 production 可执行性
+
+## Instrument Profile Integration
+
+`instrument_profile_csv` 不是可有可无的装饰输入，而是当前模块最重要的提质接口之一。
+
+当前最值得优先补真的字段是：
+- `listing_date`
+- `float_mktcap`
+- `southbound_eligible`
+
+原因：
+- `listing_date` 决定 IPO / 次新 universe 是否还是 proxy
+- `float_mktcap` 决定 `boundary_approach` 是否真在看“市值接近边界”
+- `southbound_eligible` 决定 universe 是否误纳入已经明显过边界的标的
+
+若暂时没有现成 profile 文件：
+- 可以先用 `build_instrument_profile_seed.py` 导出 seed
+- 再人工或通过稳定外部参考回填真值
+- 回填后重新跑事件模块
+
+模块输出 summary 会附带 `profile_coverage`，用于衡量当前有多少结果已经使用真实 profile，而不是 proxy。

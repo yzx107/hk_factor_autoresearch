@@ -126,3 +126,32 @@ python3 event_boundary_push/validate_ground_truth.py \
 - 看历史纳入 / 事件样本是否被模块提前捕捉
 - 看提前量（lead days）
 - 看哪些 event cases 没有对应 ground truth，可作为噪音 proxy
+
+## Instrument Profile Integration
+
+如果暂时没有稳定的 `instrument_profile_csv`，可以先导出一个可回填 seed：
+
+```bash
+python3 event_boundary_push/build_instrument_profile_seed.py \
+  --config event_boundary_push/configs/boundary_push_event_v0.toml \
+  --included-only
+```
+
+默认输出：
+- `event_boundary_push/outputs/instrument_profile_seed.csv`
+- `event_boundary_push/outputs/instrument_profile_seed.summary.json`
+
+这个 seed 会把当前事件 universe 中的：
+- `instrument_key / ticker`
+- `first_seen_date`
+- `listing_date_seed`
+- `float_mktcap_seed`
+- `southbound_seed`
+导出来，并留空以下可回填列：
+- `listing_date`
+- `float_mktcap`
+- `southbound_eligible`
+
+回填完成后，把 enriched CSV 路径写回 `boundary_push_event_v0.toml` 的 `instrument_profile_csv`，再重新跑事件模块。
+
+重新运行后，summary JSON 里会带 `profile_coverage`，可以直接看到当前有多少行已经脱离 proxy。

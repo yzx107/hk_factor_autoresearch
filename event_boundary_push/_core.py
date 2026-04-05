@@ -271,14 +271,16 @@ def _load_optional_profile(config: EventModuleConfig) -> pl.DataFrame | None:
     if "southbound_eligible" in frame.columns:
         rename_map["southbound_eligible"] = "southbound_eligible_profile"
     frame = frame.rename(rename_map)
-    casts: list[pl.Expr] = []
+    casts: list[pl.Expr] = [pl.col("instrument_key").cast(pl.String, strict=False).str.zfill(5)]
+    if "ticker_profile" in frame.columns:
+        casts.append(pl.col("ticker_profile").cast(pl.String, strict=False).str.zfill(5))
     if "listing_date_profile" in frame.columns:
         casts.append(pl.col("listing_date_profile").cast(pl.Date, strict=False))
     if "float_mktcap_profile" in frame.columns:
         casts.append(pl.col("float_mktcap_profile").cast(pl.Float64, strict=False))
     if "southbound_eligible_profile" in frame.columns:
         casts.append(pl.col("southbound_eligible_profile").cast(pl.Boolean, strict=False))
-    return frame.with_columns(casts) if casts else frame
+    return frame.with_columns(casts)
 
 
 def _load_optional_control_features(config: EventModuleConfig) -> pl.DataFrame | None:
@@ -491,6 +493,12 @@ def build_event_universe_frame(config: EventModuleConfig) -> pl.DataFrame:
 
 def write_event_universe(config: EventModuleConfig) -> tuple[pl.DataFrame, dict[str, Any]]:
     universe = build_event_universe_frame(config)
+    profile_coverage = {
+        "listing_date_instrument_profile_count": universe.filter(pl.col("listing_date_source") == "instrument_profile").height,
+        "float_mktcap_non_null_count": universe.filter(pl.col("float_mktcap_effective").is_not_null()).height,
+        "southbound_instrument_profile_count": universe.filter(pl.col("southbound_source") == "instrument_profile").height,
+        "boundary_true_mktcap_count": universe.filter(pl.col("boundary_proxy_source") == "float_mktcap_effective").height,
+    }
     summary = write_dataframe_with_summary(
         universe,
         data_path=config.event_universe_path,
@@ -504,6 +512,7 @@ def write_event_universe(config: EventModuleConfig) -> tuple[pl.DataFrame, dict[
             "config_path": str(config.config_path),
             "year": config.year,
             "included_count": universe.filter(pl.col("event_universe_included")).height,
+            "profile_coverage": profile_coverage,
         },
     )
     return universe, summary
@@ -820,6 +829,11 @@ def build_event_state_frame(config: EventModuleConfig, *, universe: pl.DataFrame
 def write_event_state_daily(config: EventModuleConfig) -> tuple[pl.DataFrame, dict[str, Any]]:
     universe = build_event_universe_frame(config)
     panel = build_event_state_frame(config, universe=universe)
+    profile_coverage = {
+        "listing_date_instrument_profile_rows": panel.filter(pl.col("listing_date_source") == "instrument_profile").height if not panel.is_empty() else 0,
+        "boundary_true_mktcap_rows": panel.filter(pl.col("boundary_proxy_source") == "float_mktcap_effective").height if not panel.is_empty() else 0,
+        "southbound_instrument_profile_rows": panel.filter(pl.col("southbound_source") == "instrument_profile").height if not panel.is_empty() else 0,
+    }
     summary = write_dataframe_with_summary(
         panel,
         data_path=config.event_state_path,
@@ -839,6 +853,7 @@ def write_event_state_daily(config: EventModuleConfig) -> tuple[pl.DataFrame, di
                 if not panel.is_empty()
                 else []
             ),
+            "profile_coverage": profile_coverage,
         },
     )
     return panel, summary
