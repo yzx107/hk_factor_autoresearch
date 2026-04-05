@@ -29,7 +29,7 @@
 若可选输入不存在，模块会自动退回 proxy：
 - `listing_date_effective = first_seen_in_cache_proxy`
 - `boundary proxy = turnover_median_lookback`
-- `control proxy = order_trade_event_ratio + order_trade_notional_ratio + churn_ratio`
+- `control proxy = weighted(order_trade_event_ratio_lookback_pct, order_trade_notional_ratio_lookback_pct, churn_ratio_lookback_pct)`
 
 ## 主要脚本
 
@@ -58,6 +58,23 @@ python3 event_boundary_push/export_event_review_pack.py \
   --config event_boundary_push/configs/boundary_push_event_v0.toml
 ```
 
+## 当前默认规则
+
+- `control_proxy`
+  - 默认是加权横截面 percentile 合成：
+    - `0.30 * order_trade_event_ratio_lookback_pct`
+    - `0.50 * order_trade_notional_ratio_lookback_pct`
+    - `0.20 * churn_ratio_lookback_pct`
+  - 若 broker 聚合特征存在，则按 `control_broker_blend_weight` 混入 broker proxy
+- `boundary_approach`
+  - 默认目标分位是 `0.85`
+  - 默认 band 是 `+/- 0.04`
+- `push_regime`
+  - 默认要求 `10` 日窗口内正收益日占比至少 `0.70`
+  - 默认要求 `10` 日累计涨幅至少 `0.08`
+- `event case` 合并
+  - `max_gap_sessions` 按交易日序列计，不按自然日计
+
 ## 输出说明
 
 默认输出目录：`event_boundary_push/outputs/`
@@ -85,4 +102,4 @@ review pack 是事件案例视角，不是单日 candidate 视角。
 - `control / boundary / push` 核心指标快照
 - 人工标注空列
 
-更多口径说明见 [event_spec.md](/Users/yxin/AI_Workstation/hk_factor_autoresearch/event_boundary_push/event_spec.md)。
+更多口径说明见 `event_spec.md`。

@@ -74,12 +74,30 @@
 - `broker_hhi`
 - `broker_netflow_persistence`
 
+### control proxy 合成公式
+
+先把各个 control proxy 做成当日横截面 percentile，再做固定加权：
+
+- `control_proxy_base =`
+  - `0.30 * order_trade_event_ratio_lookback_pct`
+  - `+ 0.50 * order_trade_notional_ratio_lookback_pct`
+  - `+ 0.20 * churn_ratio_lookback_pct`
+
+若 broker 聚合特征存在：
+- `control_proxy_broker = mean(broker_hhi_pct, broker_netflow_persistence_pct)`
+- `control_proxy =`
+  - `(1 - control_broker_blend_weight) * control_proxy_base`
+  - `+ control_broker_blend_weight * control_proxy_broker`
+
+若 broker 聚合特征不存在：
+- `control_proxy = control_proxy_base`
+
 状态规则：
 - `control_proxy >= control_build_threshold`
 - `control_proxy_sustain >= control_build_sustain_threshold`
 
 注意：
-第一版用“持续高位”近似“形成过程”，不是严格重建 broker 控盘路径。
+第一版用“持续高位 + 加权订单压力 proxy”近似“形成过程”，不是严格重建 broker 控盘路径。
 
 ### 2. `boundary_approach`
 
@@ -96,6 +114,10 @@
 - 在 event universe 内，对 `boundary_proxy_value` 做当日横截面 percentile
 - 若 percentile 落在 `boundary_target_percentile +/- boundary_band_width` 内，记为 `boundary_approach`
 
+默认配置更偏保守：
+- `boundary_target_percentile = 0.85`
+- `boundary_band_width = 0.04`
+
 ### 3. `push_regime`
 
 含义：
@@ -105,6 +127,11 @@
 - `positive_return_share_lookback >= push_positive_share_min`
 - `rolling_return_lookback >= push_return_min`
 - `drawdown_from_high_lookback >= push_drawdown_floor`
+
+默认配置更偏保守：
+- `push_positive_share_min = 0.70`
+- `push_return_min = 0.08`
+- `push_drawdown_floor = -0.06`
 
 ## 事件触发逻辑
 
@@ -126,6 +153,9 @@
 - 找出 trigger 为真的日期
 - 允许 `max_gap_sessions` 个交易日间隔
 - 把连续或近连续触发日压成一个 `event case`
+
+这里的 `max_gap_sessions` 按交易日序列计算，不按自然日计算。
+所以清明、佛诞等休市不会天然切碎事件窗。
 
 每个 case 至少包含：
 - `event_id`

@@ -96,6 +96,10 @@ class EventModuleConfig:
     push_positive_share_min: float
     push_return_min: float
     push_drawdown_floor: float
+    control_event_ratio_weight: float
+    control_notional_ratio_weight: float
+    control_churn_weight: float
+    control_broker_blend_weight: float
     max_gap_sessions: int
     review_top_n: int
     event_universe_filename: str
@@ -187,7 +191,11 @@ def load_config(config_path: Path) -> EventModuleConfig:
         push_positive_share_min=float(state_rules.get("push_positive_share_min", 0.60)),
         push_return_min=float(state_rules.get("push_return_min", 0.05)),
         push_drawdown_floor=float(state_rules.get("push_drawdown_floor", -0.08)),
-        max_gap_sessions=int(state_rules.get("max_gap_sessions", 1)),
+        control_event_ratio_weight=float(state_rules.get("control_event_ratio_weight", 0.30)),
+        control_notional_ratio_weight=float(state_rules.get("control_notional_ratio_weight", 0.50)),
+        control_churn_weight=float(state_rules.get("control_churn_weight", 0.20)),
+        control_broker_blend_weight=float(state_rules.get("control_broker_blend_weight", 0.25)),
+        max_gap_sessions=int(state_rules.get("max_gap_sessions", 2)),
         review_top_n=int(outputs.get("review_top_n", 100)),
         event_universe_filename=str(outputs.get("event_universe", "event_universe.parquet")),
         event_state_filename=str(outputs.get("event_state_daily", "event_state_daily.parquet")),
@@ -518,11 +526,98 @@ def _clip01(expr: pl.Expr) -> pl.Expr:
     return expr.clip(lower_bound=0.0, upper_bound=1.0)
 
 
+
+def _weighted_mean_expr(column_weights: list[tuple[str, float]]) -> pl.Expr:
+    active = [(column, weight) for column, weight in column_weights if weight > 0]
+    if not active:
+        return pl.lit(None, dtype=pl.Float64)
+    total_weight = sum(weight for _, weight in active)
+    expr = pl.lit(0.0)
+    for column, weight in active:
+        expr = expr + (pl.col(column) * (weight / total_weight))
+    return expr
+
+def _empty_event_state_frame() -> pl.DataFrame:
+    return pl.DataFrame(
+        schema={
+            "date": pl.Date,
+            "instrument_key": pl.String,
+            "ticker": pl.String,
+            "event_type": pl.String,
+            "control_build": pl.Boolean,
+            "boundary_approach": pl.Boolean,
+            "push_regime": pl.Boolean,
+            "control_proxy": pl.Float64,
+            "control_proxy_sustain": pl.Float64,
+            "boundary_proxy_value": pl.Float64,
+            "boundary_proxy_percentile": pl.Float64,
+            "boundary_distance_abs": pl.Float64,
+            "rolling_return_lookback": pl.Float64,
+            "drawdown_from_high_lookback": pl.Float64,
+            "push_strength": pl.Float64,
+            "event_strength": pl.Float64,
+            "control_proxy_source": pl.String,
+            "boundary_proxy_source": pl.String,
+        }
+    )
+
+
+def _empty_event_case_frame() -> pl.DataFrame:
+    return pl.DataFrame(
+        schema={
+            "event_id": pl.String,
+            "instrument_key": pl.String,
+            "ticker": pl.String,
+            "event_type": pl.String,
+            "start_date": pl.String,
+            "end_date": pl.String,
+            "status": pl.String,
+            "event_day_count": pl.Int64,
+            "control_build_days": pl.Int64,
+            "boundary_approach_days": pl.Int64,
+            "push_regime_days": pl.Int64,
+            "peak_event_strength": pl.Float64,
+            "peak_control_proxy": pl.Float64,
+            "peak_push_strength": pl.Float64,
+            "min_boundary_distance_abs": pl.Float64,
+            "boundary_proxy_start": pl.Float64,
+            "boundary_proxy_end": pl.Float64,
+            "boundary_percentile_start": pl.Float64,
+            "boundary_percentile_end": pl.Float64,
+            "price_return_during_event": pl.Float64,
+            "max_drawdown_during_event": pl.Float64,
+            "control_proxy_source": pl.String,
+            "boundary_proxy_source": pl.String,
+        }
+    )
+
+
+def _empty_event_review_frame() -> pl.DataFrame:
+    return pl.DataFrame(
+        schema={
+            "event_id": pl.String,
+            "ticker": pl.String,
+            "event_type": pl.String,
+            "start_date": pl.String,
+            "end_date": pl.String,
+            "status": pl.String,
+            "annotator": pl.String,
+            "expert_suspect_flag": pl.String,
+            "perceived_path_type": pl.String,
+            "confidence": pl.String,
+            "reason_code_1": pl.String,
+            "reason_code_2": pl.String,
+            "reason_code_3": pl.String,
+            "operator_fingerprint_guess": pl.String,
+            "comment": pl.String,
+        }
+    )
+
 def build_event_state_frame(config: EventModuleConfig, *, universe: pl.DataFrame | None = None) -> pl.DataFrame:
     universe_frame = universe if universe is not None else build_event_universe_frame(config)
     included = universe_frame.filter(pl.col("event_universe_included")).select(["instrument_key"])
     if included.is_empty():
-        return pl.DataFrame({"date": [], "instrument_key": [], "ticker": []})
+        return _empty_event_state_frame()
 
     panel = (
         build_trade_order_panel(config)
@@ -597,14 +692,35 @@ def build_event_state_frame(config: EventModuleConfig, *, universe: pl.DataFrame
     rank_columns = control_component_columns + ["boundary_proxy_value"]
     panel = panel.with_columns([_percentile_rank_expr(column) for column in rank_columns])
 
-    control_pct_columns = [f"{column}_pct" for column in control_component_columns if f"{column}_pct" in panel.columns]
+    base_control_weights = [
+        ("order_trade_event_ratio_lookback_pct", config.control_event_ratio_weight),
+        ("order_trade_notional_ratio_lookback_pct", config.control_notional_ratio_weight),
+        ("churn_ratio_lookback_pct", config.control_churn_weight),
+    ]
+    broker_control_weights: list[tuple[str, float]] = []
+    if "broker_hhi_pct" in panel.columns:
+        broker_control_weights.append(("broker_hhi_pct", 1.0))
+    if "broker_netflow_persistence_pct" in panel.columns:
+        broker_control_weights.append(("broker_netflow_persistence_pct", 1.0))
+
     panel = panel.with_columns(
         [
-            pl.mean_horizontal([pl.col(column) for column in control_pct_columns]).alias("control_proxy"),
+            _weighted_mean_expr(base_control_weights).alias("control_proxy_base"),
+            _weighted_mean_expr(broker_control_weights).alias("control_proxy_broker"),
             pl.col("boundary_proxy_value_pct").alias("boundary_proxy_percentile"),
             (pl.col("boundary_proxy_value_pct") - config.boundary_target_percentile).abs().alias(
                 "boundary_distance_abs"
             ),
+        ]
+    ).with_columns(
+        [
+            pl.when(pl.col("control_proxy_broker").is_not_null())
+            .then(
+                (1.0 - config.control_broker_blend_weight) * pl.col("control_proxy_base")
+                + config.control_broker_blend_weight * pl.col("control_proxy_broker")
+            )
+            .otherwise(pl.col("control_proxy_base"))
+            .alias("control_proxy")
         ]
     ).with_columns(
         [
@@ -615,9 +731,9 @@ def build_event_state_frame(config: EventModuleConfig, *, universe: pl.DataFrame
         ]
     )
 
-    control_source = "order_trade_pressure_proxy"
+    control_source = "weighted_order_trade_pressure_proxy"
     if {"broker_hhi", "broker_netflow_persistence"}.issubset(panel.columns):
-        control_source = "broker_plus_order_pressure_proxy"
+        control_source = "weighted_broker_plus_order_pressure_proxy"
 
     push_return_scale = max(config.push_return_min, 0.01) * 2.0
     drawdown_denominator = abs(config.push_drawdown_floor) if config.push_drawdown_floor < 0 else 0.05
@@ -744,17 +860,7 @@ def build_event_cases_frame(config: EventModuleConfig, *, state_panel: pl.DataFr
     panel = state_panel if state_panel is not None else build_event_state_frame(config)
     active = panel.filter(pl.col("event_type").is_not_null()).sort(["instrument_key", "date"])
     if active.is_empty():
-        return pl.DataFrame(
-            {
-                "event_id": [],
-                "instrument_key": [],
-                "ticker": [],
-                "event_type": [],
-                "start_date": [],
-                "end_date": [],
-                "status": [],
-            }
-        )
+        return _empty_event_case_frame()
 
     trading_dates = sorted({_safe_date(value) for value in panel["date"].to_list()})
     date_index = {value: idx for idx, value in enumerate(trading_dates)}
@@ -853,13 +959,7 @@ def write_event_cases(config: EventModuleConfig) -> tuple[pl.DataFrame, dict[str
 def build_event_review_pack_frame(config: EventModuleConfig, *, cases: pl.DataFrame | None = None) -> pl.DataFrame:
     case_frame = cases if cases is not None else build_event_cases_frame(config)
     if case_frame.is_empty():
-        return pl.DataFrame({
-            "event_id": [],
-            "ticker": [],
-            "event_type": [],
-            "start_date": [],
-            "end_date": [],
-        })
+        return _empty_event_review_frame()
     review = (
         case_frame.sort(["peak_event_strength", "end_date"], descending=[True, True])
         .head(config.review_top_n)
