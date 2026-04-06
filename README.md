@@ -76,13 +76,16 @@
 - `phase_a_core`：默认安全面，只消费 `verified v1` 的结构字段
 - `phase_a_caveat_lane`：受限研究面，只允许显式声明的 caveat-only 字段，并默认人工复核
 
-这里还要额外区分证券池边界：
+这里还要额外区分 target/source 证券池边界：
 - `phase_a_core` / `phase_a_caveat_lane` 只定义字段 admissibility，不等于“研究对象已经是纯股票池”
 - 上游已经明确承认 tick universe 不是纯股票池；若需要股票研究池，必须显式使用 `instrument_profile` sidecar 做 universe 选择
-- 本 repo 当前所有 research card 都要求 `instrument_universe = "stock_research_candidate"`
-- 当前推荐写法是 `stock research candidate universe`
+- 本 repo 当前所有 research card 都要求 `target_instrument_universe = "stock_research_candidate"`
+- 当前默认还要求 `source_instrument_universe = "target_only"`
+- 当前推荐写法是 `stock research candidate target universe`
+- 运行时 loader 会按 `instrument_profile` sidecar 对 target universe 做实际过滤，不只是文档声明
 - 当前不应把默认研究对象写成 `fully verified equity universe`
 - `stock_research_candidate` 只是保守候选池，仍可能残留低位非股票例外
+- 非股票证券如果未来要进入研究，只能作为显式 source lane 输入，用于 cross-security dependence / transfer-entropy 扩展研究，不进入默认 scoreboard 主线
 
 最小 smoke：
 

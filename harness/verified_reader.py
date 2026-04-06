@@ -9,6 +9,8 @@ from typing import Any
 
 import polars as pl
 
+from harness.instrument_universe import apply_target_instrument_universe_filter
+
 VERIFIED_ROOT = Path("/Volumes/Data/港股Tick数据/verified")
 VALID_TABLES = {"verified_trades", "verified_orders"}
 
@@ -131,13 +133,35 @@ def load_verified_lazy(
     table_name: str,
     dates: list[str],
     columns: list[str] | None = None,
+    *,
+    target_instrument_universe: str = "",
+    allowed_instruments: pl.LazyFrame | None = None,
 ) -> pl.LazyFrame:
     paths = build_partition_paths(table_name, dates)
     scan = pl.scan_parquet([str(path) for path in paths])
     if columns:
-        base_columns = list(dict.fromkeys(columns))
+        requested_columns = list(dict.fromkeys(columns))
+        base_columns = [column for column in requested_columns if column != "instrument_key"]
+        if "source_file" not in base_columns:
+            base_columns.append("source_file")
         scan = scan.select(base_columns)
-    return scan.with_columns(instrument_key_expr())
+        scan = scan.with_columns(instrument_key_expr())
+        if target_instrument_universe:
+            scan = apply_target_instrument_universe_filter(
+                scan,
+                target_instrument_universe=target_instrument_universe,
+                allowed_instruments=allowed_instruments,
+            )
+        final_columns = list(dict.fromkeys(requested_columns + ["instrument_key"]))
+        return scan.select(final_columns)
+    scan = scan.with_columns(instrument_key_expr())
+    if target_instrument_universe:
+        scan = apply_target_instrument_universe_filter(
+            scan,
+            target_instrument_universe=target_instrument_universe,
+            allowed_instruments=allowed_instruments,
+        )
+    return scan
 
 
 def main(argv: list[str] | None = None) -> int:

@@ -6,6 +6,8 @@ from pathlib import Path
 
 import polars as pl
 
+from harness.instrument_universe import apply_target_instrument_universe_filter
+
 ROOT = Path(__file__).resolve().parents[1]
 DAILY_AGG_ROOT = ROOT / "cache" / "daily_agg"
 VALID_DAILY_TABLES = {"verified_trades_daily", "verified_orders_daily"}
@@ -70,14 +72,33 @@ def load_daily_agg_lazy(
     table_name: str,
     dates: list[str],
     columns: list[str] | None = None,
+    *,
+    target_instrument_universe: str = "",
+    allowed_instruments: pl.LazyFrame | None = None,
 ) -> pl.LazyFrame:
     scan = pl.scan_parquet([str(path) for path in build_daily_agg_paths(table_name, dates)])
     if columns:
-        scan = scan.select(list(dict.fromkeys(columns)))
+        requested_columns = list(dict.fromkeys(columns))
+        base_columns = list(requested_columns)
+        if target_instrument_universe and "instrument_key" not in base_columns:
+            base_columns.append("instrument_key")
+        scan = scan.select(base_columns)
+    if target_instrument_universe:
+        scan = apply_target_instrument_universe_filter(
+            scan,
+            target_instrument_universe=target_instrument_universe,
+            allowed_instruments=allowed_instruments,
+        )
+    if columns:
+        scan = scan.select(requested_columns)
     return scan
 
 
-def build_daily_agg_cache_loader(default_columns: dict[str, list[str]] | None = None):
+def build_daily_agg_cache_loader(
+    default_columns: dict[str, list[str]] | None = None,
+    *,
+    target_instrument_universe: str = "",
+):
     column_map = dict(default_columns or {})
 
     def _load(
@@ -86,6 +107,11 @@ def build_daily_agg_cache_loader(default_columns: dict[str, list[str]] | None = 
         columns: list[str] | None = None,
     ) -> pl.LazyFrame:
         selected = columns if columns is not None else column_map.get(table_name)
-        return load_daily_agg_lazy(table_name, dates, selected)
+        return load_daily_agg_lazy(
+            table_name,
+            dates,
+            selected,
+            target_instrument_universe=target_instrument_universe,
+        )
 
     return _load

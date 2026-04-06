@@ -68,5 +68,7 @@
   - avoid folding TE into existing entropy diagnostics unless explicitly requested
 - If writing or reviewing research cards, preserve the new universe wording boundary:
   - `phase_a_core` is a field-safety surface, not proof of a pure equity universe
-  - research cards in this repo now require `instrument_universe = "stock_research_candidate"`
+  - research cards in this repo now require `target_instrument_universe = "stock_research_candidate"`
+  - research cards in this repo now require `source_instrument_universe = "target_only"`
   - `stock_research_candidate` is a conservative stock research lane, not a fully verified common-equity set
+  - non-equity instruments may only appear later as explicit source-lane inputs for cross-security dependence / transfer-entropy research

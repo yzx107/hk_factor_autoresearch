@@ -25,11 +25,21 @@ RUN_ROOT = ROOT / "runs"
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Export shared forward-return labels for a verified year.")
     parser.add_argument("--year", required=True, help="Verified year like 2026.")
+    parser.add_argument(
+        "--target-instrument-universe",
+        default="stock_research_candidate",
+        help="Target instrument universe label, defaulting to the stock research candidate lane.",
+    )
     parser.add_argument("--notes", default="", help="Short export note.")
     return parser.parse_args()
 
 
-def export_forward_labels(*, year: str, notes: str = "") -> tuple[str, dict[str, object], Path]:
+def export_forward_labels(
+    *,
+    year: str,
+    target_instrument_universe: str = "stock_research_candidate",
+    notes: str = "",
+) -> tuple[str, dict[str, object], Path]:
     dates = available_dates("verified_trades", year)
     next_map = next_available_dates("verified_trades", dates, step=1)
     label_dates = sorted(set(dates) | set(next_map.values()))
@@ -39,13 +49,19 @@ def export_forward_labels(*, year: str, notes: str = "") -> tuple[str, dict[str,
                 "verified_trades_daily",
                 label_dates,
                 ["date", "instrument_key", "close_like_price"],
+                target_instrument_universe=target_instrument_universe,
             )
             .collect()
             .sort(["date", "instrument_key"])
         )
     else:
         close_like = collect_daily_frames_from_loader(
-            table_loader=lambda load_dates, columns: load_verified_lazy("verified_trades", load_dates, columns),
+            table_loader=lambda load_dates, columns: load_verified_lazy(
+                "verified_trades",
+                load_dates,
+                columns,
+                target_instrument_universe=target_instrument_universe,
+            ),
             source_columns=["date", "source_file", "Time", "Price", "row_num_in_file"],
             daily_frame_builder=build_close_like_frame,
             dates=label_dates,
@@ -65,6 +81,7 @@ def export_forward_labels(*, year: str, notes: str = "") -> tuple[str, dict[str,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "year": year,
         "label_name": LABEL_NAME,
+        "target_instrument_universe": target_instrument_universe,
         "dates": dates,
         "date_count": len(dates),
         "row_count": labels_df.height,
@@ -78,7 +95,11 @@ def export_forward_labels(*, year: str, notes: str = "") -> tuple[str, dict[str,
 
 def main() -> int:
     args = parse_args()
-    export_id, payload, _ = export_forward_labels(year=args.year, notes=args.notes)
+    export_id, payload, _ = export_forward_labels(
+        year=args.year,
+        target_instrument_universe=args.target_instrument_universe,
+        notes=args.notes,
+    )
     print(
         f"{export_id} year={payload['year']} date_count={payload['date_count']} "
         f"row_count={payload['row_count']}"

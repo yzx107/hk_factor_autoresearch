@@ -25,6 +25,7 @@ from harness.daily_agg import (
     missing_daily_agg_dates,
     missing_named_daily_agg_dates,
 )
+from harness.instrument_universe import INSTRUMENT_PROFILE_PATH
 from harness.run_phase_a import build_record, append_experiment_log, append_lineage
 from harness.verified_reader import load_verified_lazy, previous_available_dates
 
@@ -74,9 +75,14 @@ def _compute_context_dates(
     return context_dates, previous_map
 
 
-def _build_partition_loader(table_name: str):
+def _build_partition_loader(table_name: str, *, target_instrument_universe: str):
     def _load(dates: list[str], columns: list[str]) -> pl.LazyFrame:
-        return load_verified_lazy(table_name, dates, columns)
+        return load_verified_lazy(
+            table_name,
+            dates,
+            columns,
+            target_instrument_universe=target_instrument_universe,
+        )
 
     return _load
 
@@ -116,6 +122,8 @@ def run_verified_factor_experiment(
     allow_with_caveat: bool = False,
 ) -> tuple[object, dict[str, object] | None]:
     card = load_research_card(card_path)
+    target_instrument_universe = str(card["target_instrument_universe"])
+    source_instrument_universe = str(card["source_instrument_universe"])
 
     record, artifact = build_record(
         card_path=card_path,
@@ -157,7 +165,10 @@ def run_verified_factor_experiment(
             source_table_name = _joined_table_name(list(daily_table_map))
             input_columns_by_table = {name: list(columns) for name, columns in daily_table_map.items()}
             signal_lazy = module.compute_signal_from_cache_loader(
-                cache_loader=build_daily_agg_cache_loader(daily_table_map),
+                cache_loader=build_daily_agg_cache_loader(
+                    daily_table_map,
+                    target_instrument_universe=target_instrument_universe,
+                ),
                 **_factor_kwargs(
                     module.compute_signal_from_cache_loader,
                     target_dates=dates,
@@ -179,7 +190,12 @@ def run_verified_factor_experiment(
             source_table_name = daily_table_name
             loaded_columns = daily_columns
             input_columns_by_table = {daily_table_name: daily_columns}
-            daily_frame = load_daily_agg_lazy(daily_table_name, load_dates, daily_columns)
+            daily_frame = load_daily_agg_lazy(
+                daily_table_name,
+                load_dates,
+                daily_columns,
+                target_instrument_universe=target_instrument_universe,
+            )
             signal_lazy = module.compute_signal_from_daily(
                 daily_frame,
                 **_factor_kwargs(
@@ -191,7 +207,10 @@ def run_verified_factor_experiment(
             )
         elif hasattr(module, "compute_signal_from_loader"):
             signal_lazy = module.compute_signal_from_loader(
-                table_loader=_build_partition_loader(table_name),
+                table_loader=_build_partition_loader(
+                    table_name,
+                    target_instrument_universe=target_instrument_universe,
+                ),
                 **_factor_kwargs(
                     module.compute_signal_from_loader,
                     target_dates=dates,
@@ -200,7 +219,12 @@ def run_verified_factor_experiment(
                 ),
             )
         else:
-            lazy_frame = load_verified_lazy(table_name, load_dates, required_columns)
+            lazy_frame = load_verified_lazy(
+                table_name,
+                load_dates,
+                required_columns,
+                target_instrument_universe=target_instrument_universe,
+            )
             signal_lazy = module.compute_signal(
                 lazy_frame,
                 **_factor_kwargs(
@@ -212,7 +236,10 @@ def run_verified_factor_experiment(
             )
     elif hasattr(module, "compute_signal_from_loader"):
         signal_lazy = module.compute_signal_from_loader(
-            table_loader=_build_partition_loader(table_name),
+            table_loader=_build_partition_loader(
+                table_name,
+                target_instrument_universe=target_instrument_universe,
+            ),
             **_factor_kwargs(
                 module.compute_signal_from_loader,
                 target_dates=dates,
@@ -221,7 +248,12 @@ def run_verified_factor_experiment(
             ),
         )
     else:
-        lazy_frame = load_verified_lazy(table_name, load_dates, required_columns)
+        lazy_frame = load_verified_lazy(
+            table_name,
+            load_dates,
+            required_columns,
+            target_instrument_universe=target_instrument_universe,
+        )
         signal_lazy = module.compute_signal(
             lazy_frame,
             **_factor_kwargs(
@@ -257,6 +289,9 @@ def run_verified_factor_experiment(
         "table_name": source_table_name,
         "upstream_table_name": table_name,
         "data_source_mode": source_mode,
+        "target_instrument_universe": target_instrument_universe,
+        "source_instrument_universe": source_instrument_universe,
+        "instrument_profile_sidecar": str(INSTRUMENT_PROFILE_PATH),
         "score_column": score_column,
         "dates": dates,
         "loaded_dates": load_dates,

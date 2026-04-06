@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 import unittest
 
-from harness.generate_factor_batch import load_batch_spec
+from harness.generate_factor_batch import _render_card, load_batch_spec
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -23,6 +23,12 @@ class FactorBatchGeneratorTest(unittest.TestCase):
                 "close_vwap_churn_interaction",
             ],
         )
+
+    def test_rendered_card_uses_target_source_universe_split(self) -> None:
+        spec = load_batch_spec(SPEC_PATH)
+        text = _render_card(spec, spec.prototypes[0])
+        self.assertIn('target_instrument_universe = "stock_research_candidate"', text)
+        self.assertIn('source_instrument_universe = "target_only"', text)
 
 
 if __name__ == "__main__":

@@ -22,8 +22,12 @@ SUPPORTED_UNIVERSES = {
     "phase_a_caveat_lane",
 }
 
-SUPPORTED_INSTRUMENT_UNIVERSES = {
+SUPPORTED_TARGET_INSTRUMENT_UNIVERSES = {
     "stock_research_candidate",
+}
+
+SUPPORTED_SOURCE_INSTRUMENT_UNIVERSES = {
+    "target_only",
 }
 
 SAFE_FIELDS = {
@@ -89,7 +93,8 @@ REQUIRED_TOP_LEVEL_KEYS = {
     "status",
     "years",
     "universe",
-    "instrument_universe",
+    "target_instrument_universe",
+    "source_instrument_universe",
     "holding_horizon",
     "research_modules",
     "required_fields",
@@ -142,7 +147,14 @@ def _load_card(path: Path) -> dict[str, Any]:
         raise ValueError("Closing +++ front matter delimiter not found.")
 
     front_matter = "\n".join(lines[1:end_index])
-    return tomllib.loads(front_matter)
+    return _normalize_card(tomllib.loads(front_matter))
+
+
+def _normalize_card(card: dict[str, Any]) -> dict[str, Any]:
+    normalized = dict(card)
+    if "target_instrument_universe" not in normalized and "instrument_universe" in normalized:
+        normalized["target_instrument_universe"] = normalized["instrument_universe"]
+    return normalized
 
 
 def load_research_card(path: Path) -> dict[str, Any]:
@@ -179,11 +191,30 @@ def _validate_card_shape(card: dict[str, Any], errors: list[str]) -> None:
     if card.get("universe") not in SUPPORTED_UNIVERSES:
         allowed = ", ".join(sorted(SUPPORTED_UNIVERSES))
         errors.append(f"Phase A currently supports only named universes: {allowed}.")
-    if card.get("instrument_universe") not in SUPPORTED_INSTRUMENT_UNIVERSES:
-        allowed = ", ".join(sorted(SUPPORTED_INSTRUMENT_UNIVERSES))
+    legacy_target = card.get("instrument_universe")
+    target_instrument_universe = card.get("target_instrument_universe")
+    if (
+        legacy_target is not None
+        and target_instrument_universe is not None
+        and legacy_target != target_instrument_universe
+    ):
+        errors.append(
+            "Legacy `instrument_universe` and `target_instrument_universe` disagree. "
+            "Keep only one target-universe declaration or make them identical."
+        )
+    if target_instrument_universe not in SUPPORTED_TARGET_INSTRUMENT_UNIVERSES:
+        allowed = ", ".join(sorted(SUPPORTED_TARGET_INSTRUMENT_UNIVERSES))
         errors.append(
             "This repo only supports stock-factor research cards with "
-            f"`instrument_universe` in: {allowed}."
+            f"`target_instrument_universe` in: {allowed}."
+        )
+    if card.get("source_instrument_universe") not in SUPPORTED_SOURCE_INSTRUMENT_UNIVERSES:
+        allowed = ", ".join(sorted(SUPPORTED_SOURCE_INSTRUMENT_UNIVERSES))
+        errors.append(
+            "Default stock-factor runs only support "
+            f"`source_instrument_universe` in: {allowed}. "
+            "Cross-security non-equity sources must live in an explicit future extension lane, "
+            "not the default factor scoreboard path."
         )
 
 

@@ -130,6 +130,7 @@ def run_pre_eval_for_factor(
     entry = _find_experiment(entries, factor_name, experiment_id)
     run_summary = _load_run_summary(entry)
     score_column = str(run_summary["score_column"])
+    target_instrument_universe = str(run_summary.get("target_instrument_universe", ""))
     factor_df = _load_factor_output(entry)
     factor_dates = sorted(
         {value.isoformat() if hasattr(value, "isoformat") else str(value) for value in factor_df["date"]}
@@ -146,6 +147,7 @@ def run_pre_eval_for_factor(
                     "verified_trades_daily",
                     label_dates,
                     ["date", "instrument_key", "close_like_price"],
+                    target_instrument_universe=target_instrument_universe,
                 )
                 .collect()
                 .sort(["date", "instrument_key"])
@@ -155,6 +157,7 @@ def run_pre_eval_for_factor(
                 "verified_trades",
                 label_dates,
                 ["date", "source_file", "Time", "Price", "row_num_in_file"],
+                target_instrument_universe=target_instrument_universe,
             )
             close_like = build_close_like_frame(trades)
         labels_df = build_forward_return_labels(close_like, next_date_map=next_map, label_name=LABEL_NAME)
@@ -181,6 +184,8 @@ def run_pre_eval_for_factor(
         "experiment_id": entry["experiment_id"],
         "factor_name": entry["factor_name"],
         "score_column": score_column,
+        "target_instrument_universe": target_instrument_universe,
+        "source_instrument_universe": str(run_summary.get("source_instrument_universe", "")),
         "notes": notes,
         "labels_path": str(labels_path) if labels_path else "",
         **summary,

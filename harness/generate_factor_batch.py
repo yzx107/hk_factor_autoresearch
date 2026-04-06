@@ -245,14 +245,15 @@ status = "draft"
 factor_family = "{spec.family}"
 years = {years}
 universe = "{spec.universe}"
-instrument_universe = "stock_research_candidate"
+target_instrument_universe = "stock_research_candidate"
+source_instrument_universe = "target_only"
 holding_horizon = "{spec.holding_horizon}"
 research_modules = {research_modules}
 required_fields = {required_fields}
 horizon_scope = "{spec.horizon_scope}"
 hypothesis = {hypothesis!r}
 mechanism = {mechanism!r}
-info_boundary = "只在上游 instrument_profile sidecar 的 stock_research_candidate 股票候选池内研究；这不是 fully verified equity universe，仍可能残留 listed_security_unclassified 低位非股票例外；只使用 verified_trades_daily 与 verified_orders_daily 的安全 daily agg；不使用任何 caveat-only 字段。"
+info_boundary = "target 只在上游 instrument_profile sidecar 的 stock_research_candidate 股票候选池内研究；source 当前固定为 target_only，不混入非股票证券；这不是 fully verified equity universe，仍可能残留 listed_security_unclassified 低位非股票例外；只使用 verified_trades_daily 与 verified_orders_daily 的安全 daily agg；不使用任何 caveat-only 字段。"
 observable_proxies = {observable_proxies}
 baseline_refs = {baseline_refs_text}
 promotion_target = "{spec.promotion_target}"
@@ -289,7 +290,8 @@ uses_queue_semantics = false
 
 ## Info Boundary
 
-只在上游 `instrument_profile` sidecar 的 `stock_research_candidate` 股票候选池内研究；
+target 只在上游 `instrument_profile` sidecar 的 `stock_research_candidate` 股票候选池内研究；
+source 当前固定为 `target_only`，不混入任何非股票证券；
 这不是 `fully verified equity universe`，仍可能残留 `listed_security_unclassified` 低位非股票例外。
 只使用 `phase_a_core` 的日级安全缓存，不使用任何 caveat-only 字段。
 
@@ -334,7 +336,7 @@ uses_queue_semantics = false
 
 ## Out of Scope in This Phase
 
-本阶段不引入 transfer entropy，也不把 entropy diagnostics 直接升级为 hard filter。
+本批默认不引入 cross-security source lane，也不把 transfer entropy exploratory utility 纳入 fixed pre-eval / Gate。
 
 ## Expected Risks
 

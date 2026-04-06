@@ -19,15 +19,18 @@ Phase A 使用的是保守的消费层 universe，而不是重新定义上游 da
 - 如果策略、卡片或报告需要“股票研究池”，必须显式说明使用了上游 `instrument_profile` sidecar 的 `stock_research_candidate` lane
 - `stock_research_candidate` 只是保守候选池，不是 `fully verified equity universe`
 - `listed_security_unclassified` 不能被自动写成 `common_equity`
+- default factor lane 的 `target` 必须是股票候选池；默认 `source` 也必须限制在 `target_only`
+- 非股票证券如果未来进入研究，只能作为显式 source lane 输入，用于 cross-security dependence / transfer-entropy 扩展，不得回退成 mixed target universe
 
 规则：
-- 每张 card 都必须声明 `years`、`universe` 和 `instrument_universe`
+- 每张 card 都必须声明 `years`、`universe`、`target_instrument_universe` 和 `source_instrument_universe`
 - `phase_a_core` 不得使用 `TradeDir`、`OrderType`、`Type`、`OrderSideVendor`、`BrokerNo`、`Level`、`VolumePre`、full `Ext`
 - `phase_a_caveat_lane` 只允许额外使用 `TradeDir`、`OrderType`、`Type`、`OrderSideVendor`，并且必须保持上游 caveat wording
 - `phase_a_caveat_lane` 仍不得把 `BrokerNo`、`Level`、`VolumePre`、`BidOrderID`、`AskOrderID` 等写成已验证因子输入真值
 - 只有在 research card 明确说明后，factor code 才能基于透明结构字段做过滤
 - 如果 factor code 或 card 需要排除明显非股票 / 特殊证券，过滤逻辑必须显式引用上游 `instrument_profile` sidecar，而不是默认把低位代码或全 universe 当股票
-- 当前本 repo 固定要求 `instrument_universe = stock_research_candidate`
+- 当前本 repo 固定要求 `target_instrument_universe = stock_research_candidate`
+- 当前本 repo 固定要求 `source_instrument_universe = target_only`
 - 如果 card 使用 `stock_research_candidate`，必须在 `info_boundary` 中明确写出“这不是 pure common-equity proof，低位非股票例外仍可能残留”
 - 本 repo 不改动上游或固定 evaluator 所拥有的 corporate-action、liquidity、tradability 定义
 - 任何未来更窄的 trading universe 都必须作为命名配置加入，不能在 factor code 里临时推断
