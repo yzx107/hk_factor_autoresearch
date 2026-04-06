@@ -99,6 +99,10 @@ def build_record(
         "card_name": card["name"],
         "years": card["years"],
         "universe": card["universe"],
+        "target_instrument_universe": card["target_instrument_universe"],
+        "source_instrument_universe": card["source_instrument_universe"],
+        "contains_cross_security_source": card["contains_cross_security_source"],
+        "universe_filter_version": card["universe_filter_version"],
         "required_fields": card["required_fields"],
         "gate_a": gate.as_dict(),
     }

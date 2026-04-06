@@ -1,10 +1,14 @@
 family_id: trade_notional_composition
 family_name: 单笔成交额结构
 mechanism_hypothesis: 用平均单笔成交额及其变化代理参与者结构与集中成交强度。
+allowed_input_lane: phase_a_core
 core_observables:
   - turnover
   - trade_count
   - avg_trade_notional
+common_variants:
+  - avg_trade_notional_bias
+  - avg_trade_notional_bias_change
 approved_factor_ids:
   - avg_trade_notional_bias_v1
   - avg_trade_notional_bias_change_v1
@@ -12,9 +16,20 @@ rejected_factor_ids: []
 baseline_refs:
   - avg_trade_notional_bias
 current_best_variant: avg_trade_notional_bias_change
+current_best_variants:
+  - avg_trade_notional_bias_change
 known_failure_modes:
   - 容易与 size 或 liquidity proxy 共线
   - 在高成交但低分歧场景下增量可能不足
+known_failure_patterns:
+  - 容易与 size 或 liquidity proxy 共线
+  - 在高成交但低分歧场景下增量可能不足
+redundancy_pattern: 经常和 activity 家族共享规模 / 流动性解释，需要靠非线性或变化项证明增量。
+regime_sensitivity:
+  - stronger_when_participation_mix_shifts
+  - weaker_when_high_turnover_is_uniform
+extension_lane_eligibility: default_lane_only
+whether_to_expand_further: monitor
 forbidden_semantic_assumptions:
   - no_trade_side_truth
   - no_broker_identity_truth

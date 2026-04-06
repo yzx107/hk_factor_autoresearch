@@ -1,10 +1,14 @@
 family_id: activity_pressure
 family_name: 成交活跃度压力
 mechanism_hypothesis: 用成交额与成交笔数强度代理短周期注意力与库存变化。
+allowed_input_lane: phase_a_core
 core_observables:
   - turnover
   - trade_count
   - avg_trade_notional
+common_variants:
+  - structural_activity_proxy
+  - structural_activity_change
 approved_factor_ids:
   - structural_activity_proxy_v1
   - structural_activity_change_v1
@@ -12,9 +16,20 @@ rejected_factor_ids: []
 baseline_refs:
   - structural_activity_proxy
 current_best_variant: structural_activity_change
+current_best_variants:
+  - structural_activity_change
 known_failure_modes:
   - 易退化为简单活跃度或流动性代理
   - 在低成交与低波动 regime 下信号容易变弱
+known_failure_patterns:
+  - 易退化为简单活跃度或流动性代理
+  - 在低成交与低波动 regime 下信号容易变弱
+redundancy_pattern: 容易回落成 turnover / trade_count 的线性放大版，与 structural baseline 高相关。
+regime_sensitivity:
+  - attention_shift_sensitive
+  - weaker_in_low_activity_low_volatility
+extension_lane_eligibility: default_lane_only
+whether_to_expand_further: selective_expand
 forbidden_semantic_assumptions:
   - no_trade_side_truth
   - no_broker_identity_truth

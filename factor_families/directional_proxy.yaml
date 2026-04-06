@@ -1,12 +1,18 @@
 family_id: directional_proxy
 family_name: 方向性代理
 mechanism_hypothesis: 利用 vendor-derived TradeDir 代理买卖方向失衡，捕捉现有因子完全缺失的方向性维度。这个家族的所有因子都是 caveat-only，不做 signed-side truth 宣称。
+allowed_input_lane: phase_a_caveat_lane
 core_observables:
   - TradeDir
   - Price
   - Volume
   - buy_ratio
   - volume_weighted_imbalance
+common_variants:
+  - trade_dir_buy_ratio
+  - trade_dir_buy_ratio_change
+  - trade_dir_imbalance_intensity
+  - trade_dir_imbalance_intensity_change
 approved_factor_ids:
   - trade_dir_buy_ratio_v1
   - trade_dir_buy_ratio_change_v1
@@ -16,12 +22,25 @@ rejected_factor_ids: []
 baseline_refs:
   - structural_activity_proxy
 current_best_variant: pending_first_cycle
+current_best_variants: []
 known_failure_modes:
   - TradeDir 本身只是 vendor 机械码映射，语义可靠性未经验证
   - 买卖比在横截面上可能缺乏分散性
   - vendor 定义可能跨年份不一致
   - 如果 vendor 方向标记高度非对称，所有因子会系统偏移
   - 大单事件会污染 notional 加权
+known_failure_patterns:
+  - TradeDir 本身只是 vendor 机械码映射，语义可靠性未经验证
+  - 买卖比在横截面上可能缺乏分散性
+  - vendor 定义可能跨年份不一致
+  - 如果 vendor 方向标记高度非对称，所有因子会系统偏移
+  - 大单事件会污染 notional 加权
+redundancy_pattern: 当前不是与 baseline 高冗余的问题，而是 caveat 语义风险会压过统计表现。
+regime_sensitivity:
+  - caveat_lane_only
+  - direction_proxy_may_strengthen_in_imbalanced_days
+extension_lane_eligibility: exploratory_only
+whether_to_expand_further: monitor_after_manual_review
 forbidden_semantic_assumptions:
   - no_signed_side_truth
   - no_aggressor_truth

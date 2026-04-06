@@ -16,6 +16,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from factor_contracts.profile import DEFAULT_LABEL_DEFINITION, build_factor_profile
+from factor_families.profile import build_family_profile
 from evaluation.diagnostics import build_signal_diagnostics
 from diagnostics.regime_slices import build_regime_slice_frame
 from gatekeeper.gate_a_data import load_research_card
@@ -124,6 +126,8 @@ def run_verified_factor_experiment(
     card = load_research_card(card_path)
     target_instrument_universe = str(card["target_instrument_universe"])
     source_instrument_universe = str(card["source_instrument_universe"])
+    contains_cross_security_source = bool(card["contains_cross_security_source"])
+    universe_filter_version = str(card["universe_filter_version"])
 
     record, artifact = build_record(
         card_path=card_path,
@@ -270,17 +274,35 @@ def run_verified_factor_experiment(
         score_column=score_column,
         date_annotations=build_regime_slice_frame(signal_dates),
     )
+    family_profile = build_family_profile(str(getattr(module, "FACTOR_FAMILY", ""))).as_dict()
+    factor_profile = build_factor_profile(
+        factor_name=factor_name,
+        card=card,
+        module=module,
+        family_profile=family_profile,
+        research_card_path=str(card_path),
+        target_instrument_universe=target_instrument_universe,
+        source_instrument_universe=source_instrument_universe,
+        contains_cross_security_source=contains_cross_security_source,
+        universe_filter_version=universe_filter_version,
+        label_definition=DEFAULT_LABEL_DEFINITION,
+        family_registry_path=str(ROOT / "registry" / "factor_families.tsv"),
+    ).as_dict()
 
     run_dir = Path(record.run_dir)
     signal_path = run_dir / "factor_output.parquet"
     preview_path = run_dir / "preview.json"
     summary_path = run_dir / "data_run_summary.json"
     diagnostics_path = run_dir / "diagnostics_summary.json"
+    factor_profile_path = run_dir / "factor_profile.json"
+    family_profile_path = run_dir / "family_profile.json"
 
     signal_df.write_parquet(signal_path)
     preview_rows = signal_df.head(10).to_dicts()
     preview_path.write_text(json.dumps(preview_rows, indent=2, default=str), encoding="utf-8")
     diagnostics_path.write_text(json.dumps(diagnostics, indent=2, default=str), encoding="utf-8")
+    factor_profile_path.write_text(json.dumps(factor_profile, indent=2, default=str), encoding="utf-8")
+    family_profile_path.write_text(json.dumps(family_profile, indent=2, default=str), encoding="utf-8")
     summary = {
         "experiment_id": record.experiment_id,
         "factor_name": factor_name,
@@ -291,6 +313,8 @@ def run_verified_factor_experiment(
         "data_source_mode": source_mode,
         "target_instrument_universe": target_instrument_universe,
         "source_instrument_universe": source_instrument_universe,
+        "contains_cross_security_source": contains_cross_security_source,
+        "universe_filter_version": universe_filter_version,
         "instrument_profile_sidecar": str(INSTRUMENT_PROFILE_PATH),
         "score_column": score_column,
         "dates": dates,
@@ -298,12 +322,18 @@ def run_verified_factor_experiment(
         "card_required_fields": required_columns,
         "input_columns": loaded_columns,
         "input_columns_by_table": input_columns_by_table,
+        "factor_profile_path": str(factor_profile_path),
+        "family_profile_path": str(family_profile_path),
+        "factor_profile": factor_profile,
+        "family_profile": family_profile,
         "output_rows": signal_df.height,
         "output_columns": signal_df.columns,
         "artifacts": {
             "factor_output": str(signal_path),
             "preview": str(preview_path),
             "diagnostics_summary": str(diagnostics_path),
+            "factor_profile": str(factor_profile_path),
+            "family_profile": str(family_profile_path),
         },
     }
     summary_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")

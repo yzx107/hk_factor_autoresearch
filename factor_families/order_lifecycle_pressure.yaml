@@ -1,10 +1,14 @@
 family_id: order_lifecycle_pressure
 family_name: 订单生命周期压力
 mechanism_hypothesis: 用每个唯一订单对应的重复事件密度代理流动性争夺与报价摩擦。
+allowed_input_lane: phase_a_core
 core_observables:
   - order_event_count
   - unique_order_ids
   - order_event_density
+common_variants:
+  - order_lifecycle_churn
+  - order_lifecycle_churn_change
 approved_factor_ids:
   - order_lifecycle_churn_v1
   - order_lifecycle_churn_change_v1
@@ -12,9 +16,20 @@ rejected_factor_ids: []
 baseline_refs:
   - order_lifecycle_churn
 current_best_variant: order_lifecycle_churn_change
+current_best_variants:
+  - order_lifecycle_churn_change
 known_failure_modes:
   - 覆盖率受 verified_orders_daily 可用范围限制
   - 容易把技术性的订单重复事件误判成经济压力
+known_failure_patterns:
+  - 覆盖率受 verified_orders_daily 可用范围限制
+  - 容易把技术性的订单重复事件误判成经济压力
+redundancy_pattern: 易与 order-trade interaction 家族共享 churn 维度，若没有额外机制差异就会被交互家族吸收。
+regime_sensitivity:
+  - stronger_when_liquidity_contestation_rises
+  - coverage_sensitive
+extension_lane_eligibility: default_lane_only
+whether_to_expand_further: monitor
 forbidden_semantic_assumptions:
   - no_trade_side_truth
   - no_broker_identity_truth

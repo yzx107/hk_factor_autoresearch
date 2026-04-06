@@ -1,6 +1,7 @@
 family_id: intraday_distribution
 family_name: 盘内分布形态
 mechanism_hypothesis: 用成交的时段结构、额度集中度和到达节奏来代理日内微观信息状态，捕捉现有日级聚合因子丢失的盘内维度。
+allowed_input_lane: phase_a_core
 core_observables:
   - Time
   - Price
@@ -8,6 +9,13 @@ core_observables:
   - trade_interval
   - session_turnover_share
   - trade_notional_gini
+common_variants:
+  - session_activity_shift
+  - session_activity_shift_change
+  - trade_size_concentration
+  - trade_size_concentration_change
+  - trade_arrival_burstiness
+  - trade_arrival_burstiness_change
 approved_factor_ids:
   - session_activity_shift_v1
   - session_activity_shift_change_v1
@@ -20,12 +28,25 @@ baseline_refs:
   - structural_activity_proxy
   - avg_trade_notional_bias
 current_best_variant: pending_first_cycle
+current_best_variants: []
 known_failure_modes:
   - 盘中休市分割可能引入结构性偏差
   - Time 字段精度限制可能拉平 burstiness 信号
   - Gini 在极低成交日不可靠
   - session shift 在半日交易日退化
   - 容易和 activity / notional 日级因子产生部分共线
+known_failure_patterns:
+  - 盘中休市分割可能引入结构性偏差
+  - Time 字段精度限制可能拉平 burstiness 信号
+  - Gini 在极低成交日不可靠
+  - session shift 在半日交易日退化
+  - 容易和 activity / notional 日级因子产生部分共线
+redundancy_pattern: 容易与 activity / notional 家族共享“活跃度变化”主成分，需要靠 regime 和分布形态证明增量。
+regime_sensitivity:
+  - stronger_when_intraday_shape_changes
+  - weaker_on_half_days_or_sparse_sessions
+extension_lane_eligibility: exploratory_only
+whether_to_expand_further: selective_expand
 forbidden_semantic_assumptions:
   - no_trade_side_truth
   - no_broker_identity_truth

@@ -10,6 +10,12 @@ import sys
 from typing import Any
 import tomllib
 
+from harness.instrument_universe import (
+    DEFAULT_SOURCE_INSTRUMENT_UNIVERSE,
+    DEFAULT_TARGET_INSTRUMENT_UNIVERSE,
+    UNIVERSE_FILTER_VERSION,
+)
+
 ROOT = Path(__file__).resolve().parents[1]
 
 YEAR_GRADES = {
@@ -95,6 +101,8 @@ REQUIRED_TOP_LEVEL_KEYS = {
     "universe",
     "target_instrument_universe",
     "source_instrument_universe",
+    "contains_cross_security_source",
+    "universe_filter_version",
     "holding_horizon",
     "research_modules",
     "required_fields",
@@ -215,6 +223,17 @@ def _validate_card_shape(card: dict[str, Any], errors: list[str]) -> None:
             f"`source_instrument_universe` in: {allowed}. "
             "Cross-security non-equity sources must live in an explicit future extension lane, "
             "not the default factor scoreboard path."
+        )
+    contains_cross_security_source = card.get("contains_cross_security_source")
+    if not isinstance(contains_cross_security_source, bool):
+        errors.append("`contains_cross_security_source` must be a boolean.")
+    elif contains_cross_security_source:
+        errors.append(
+            "Default Phase A stock-factor cards must not set `contains_cross_security_source = true`."
+        )
+    if card.get("universe_filter_version") != UNIVERSE_FILTER_VERSION:
+        errors.append(
+            f"Default universe filter version must be `{UNIVERSE_FILTER_VERSION}`."
         )
 
 

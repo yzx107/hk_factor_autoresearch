@@ -1,12 +1,24 @@
 family_id: order_trade_interaction_pressure
 family_name: 订单-成交交互压力
 mechanism_hypothesis: 用订单事件与成交实现的相对强度代理未成交压力和成交摩擦。
+allowed_input_lane: phase_a_core
 core_observables:
   - order_event_count
   - unique_order_ids
   - total_order_notional
   - trade_count
   - turnover
+common_variants:
+  - order_trade_event_ratio
+  - order_trade_event_ratio_change
+  - order_trade_notional_ratio
+  - order_trade_notional_ratio_change
+  - order_unique_trade_participation_gap
+  - order_unique_trade_participation_gap_change
+  - order_notional_vs_trade_notional_gap
+  - order_notional_vs_trade_notional_gap_change
+  - close_vwap_churn_interaction
+  - close_vwap_churn_interaction_change
 approved_factor_ids:
   - order_trade_event_ratio_v1
   - order_trade_event_ratio_change_v1
@@ -23,10 +35,22 @@ baseline_refs:
   - structural_activity_proxy
   - order_lifecycle_churn
 current_best_variant: close_vwap_churn_interaction_change
+current_best_variants:
+  - close_vwap_churn_interaction_change
 known_failure_modes:
   - 容易退化为 activity 或 churn 的线性组合
   - 在低成交和低订单覆盖日中 ratio 容易不稳定
   - 交互项容易把尾盘噪声和覆盖差异误判成经济压力
+known_failure_patterns:
+  - 容易退化为 activity 或 churn 的线性组合
+  - 在低成交和低订单覆盖日中 ratio 容易不稳定
+  - 交互项容易把尾盘噪声和覆盖差异误判成经济压力
+redundancy_pattern: 家族内部大量 ratio / gap / interaction 共享同一订单覆盖主轴，需持续压制对 churn baseline 的冗余。
+regime_sensitivity:
+  - stronger_when_order_and_trade_pressure_diverge
+  - weaker_when_order_coverage_is_sparse
+extension_lane_eligibility: exploratory_only
+whether_to_expand_further: expand
 forbidden_semantic_assumptions:
   - no_trade_side_truth
   - no_broker_identity_truth

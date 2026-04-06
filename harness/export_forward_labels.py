@@ -17,6 +17,11 @@ if str(ROOT) not in sys.path:
 from evaluation.pre_eval import LABEL_NAME, build_close_like_frame, build_forward_return_labels
 from factor_defs.change_support import collect_daily_frames_from_loader
 from harness.daily_agg import load_daily_agg_lazy, missing_daily_agg_dates
+from harness.instrument_universe import (
+    DEFAULT_SOURCE_INSTRUMENT_UNIVERSE,
+    DEFAULT_TARGET_INSTRUMENT_UNIVERSE,
+    UNIVERSE_FILTER_VERSION,
+)
 from harness.verified_reader import available_dates, load_verified_lazy, next_available_dates
 
 RUN_ROOT = ROOT / "runs"
@@ -82,6 +87,9 @@ def export_forward_labels(
         "year": year,
         "label_name": LABEL_NAME,
         "target_instrument_universe": target_instrument_universe,
+        "source_instrument_universe": DEFAULT_SOURCE_INSTRUMENT_UNIVERSE,
+        "contains_cross_security_source": False,
+        "universe_filter_version": UNIVERSE_FILTER_VERSION,
         "dates": dates,
         "date_count": len(dates),
         "row_count": labels_df.height,
