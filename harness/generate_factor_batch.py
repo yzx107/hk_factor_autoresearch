@@ -320,6 +320,18 @@ uses_queue_semantics = false
 - `transform = "level"`
 - `transform = "one_day_difference"`
 
+## Default Evaluation Outputs
+
+当这个候选走固定 harness 时，默认会产出：
+- `aggregate_metrics.rank_ic`
+- `aggregate_metrics.top_bottom_spread`
+- `aggregate_metrics.nmi`
+- 基于 turnover distribution entropy quantile 的 regime slicing
+
+## Out of Scope in This Phase
+
+本阶段不引入 transfer entropy，也不把 entropy diagnostics 直接升级为 hard filter。
+
 ## Expected Risks
 
 {" ".join(prototype.expected_risks)}

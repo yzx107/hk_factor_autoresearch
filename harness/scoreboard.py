@@ -29,6 +29,7 @@ COMPARISON_LOG = ROOT / "registry" / "comparison_log.tsv"
 PRE_EVAL_LOG = ROOT / "registry" / "pre_eval_log.tsv"
 SCOREBOARD_LOG = ROOT / "registry" / "scoreboard_log.tsv"
 RUN_ROOT = ROOT / "runs"
+ENTROPY_SLICE_NAME = "entropy_quantile"
 
 
 def _read_tsv(path: Path) -> list[dict[str, str]]:
@@ -52,6 +53,69 @@ def _latest_runs(entries: list[dict[str, str]]) -> dict[str, dict[str, str]]:
 
 def _load_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _pre_eval_metric(summary: dict[str, Any], *, official_name: str, legacy_name: str) -> float | None:
+    aggregate_metrics = summary.get("aggregate_metrics", {})
+    if isinstance(aggregate_metrics, dict):
+        value = aggregate_metrics.get(official_name)
+        if value is not None:
+            return float(value)
+    legacy_value = summary.get(legacy_name)
+    if legacy_value is None:
+        return None
+    return float(legacy_value)
+
+
+def _entropy_regime_summary(regime_slices: dict[str, Any]) -> dict[str, Any]:
+    entries = list(regime_slices.get(ENTROPY_SLICE_NAME, []))
+    digest = [
+        {
+            "slice_value": item["slice_value"],
+            "mean_abs_rank_ic": item.get("mean_abs_rank_ic"),
+            "mean_nmi": item.get("mean_nmi", item.get("mean_normalized_mutual_info")),
+        }
+        for item in entries
+    ]
+    scored_entries = [item for item in digest if item["mean_abs_rank_ic"] is not None]
+    if len(scored_entries) >= 2:
+        values = [float(item["mean_abs_rank_ic"]) for item in scored_entries]
+        dispersion = max(values) - min(values)
+        strongest = max(scored_entries, key=lambda item: float(item["mean_abs_rank_ic"]))
+        weakest = min(scored_entries, key=lambda item: float(item["mean_abs_rank_ic"]))
+    elif len(scored_entries) == 1:
+        dispersion = 0.0
+        strongest = scored_entries[0]
+        weakest = scored_entries[0]
+    else:
+        dispersion = None
+        strongest = None
+        weakest = None
+    return {
+        "entries": digest,
+        "dispersion": dispersion,
+        "strongest_slice": None if strongest is None else strongest["slice_value"],
+        "weakest_slice": None if weakest is None else weakest["slice_value"],
+    }
+
+
+def _regime_digest(entries: list[dict[str, Any]], *, include_nmi: bool) -> str:
+    parts: list[str] = []
+    for item in entries:
+        mean_abs_rank_ic = item.get("mean_abs_rank_ic")
+        if mean_abs_rank_ic is None:
+            continue
+        if include_nmi:
+            mean_nmi = item.get("mean_nmi", item.get("mean_normalized_mutual_info"))
+            if mean_nmi is None:
+                parts.append(f"{item['slice_value']}:ic={float(mean_abs_rank_ic):.4f}")
+            else:
+                parts.append(
+                    f"{item['slice_value']}:ic={float(mean_abs_rank_ic):.4f}|nmi={float(mean_nmi):.4f}"
+                )
+        else:
+            parts.append(f"{item['slice_value']}:{float(mean_abs_rank_ic):.4f}")
+    return ",".join(parts)
 
 
 def _resolve_factor_module_name(entry: dict[str, str], data_summary: dict[str, Any]) -> str:
@@ -111,6 +175,18 @@ def _pre_eval_row(entry: dict[str, str] | None) -> dict[str, Any] | None:
     if not entry:
         return None
     summary = _load_json(Path(entry["summary_path"]))
+    regime_slices = summary.get("regime_slices", {})
+    entropy_summary = _entropy_regime_summary(regime_slices)
+    mean_rank_ic = _pre_eval_metric(summary, official_name="rank_ic", legacy_name="mean_rank_ic")
+    mean_abs_rank_ic = _pre_eval_metric(summary, official_name="abs_rank_ic", legacy_name="mean_abs_rank_ic")
+    mean_mutual_info = _pre_eval_metric(summary, official_name="mi", legacy_name="mean_mutual_info")
+    mean_nmi = _pre_eval_metric(summary, official_name="nmi", legacy_name="mean_normalized_mutual_info")
+    mean_top_bottom_spread = _pre_eval_metric(
+        summary,
+        official_name="top_bottom_spread",
+        legacy_name="mean_top_bottom_spread",
+    )
+    mean_coverage_ratio = _pre_eval_metric(summary, official_name="coverage_ratio", legacy_name="mean_coverage_ratio")
     return {
         "pre_eval_id": entry["pre_eval_id"],
         "experiment_id": entry["experiment_id"],
@@ -119,13 +195,19 @@ def _pre_eval_row(entry: dict[str, str] | None) -> dict[str, Any] | None:
         "labeled_dates": summary["labeled_dates"],
         "skipped_dates": summary["skipped_dates"],
         "joined_rows": summary["joined_rows"],
-        "mean_rank_ic": summary["mean_rank_ic"],
-        "mean_abs_rank_ic": summary["mean_abs_rank_ic"],
-        "mean_mutual_info": summary.get("mean_mutual_info"),
-        "mean_normalized_mutual_info": summary.get("mean_normalized_mutual_info"),
-        "mean_top_bottom_spread": summary["mean_top_bottom_spread"],
-        "mean_coverage_ratio": summary["mean_coverage_ratio"],
-        "regime_slices": summary.get("regime_slices", {}),
+        "aggregate_metrics": summary.get("aggregate_metrics", {}),
+        "mean_rank_ic": mean_rank_ic,
+        "mean_abs_rank_ic": mean_abs_rank_ic,
+        "mean_mutual_info": mean_mutual_info,
+        "mean_normalized_mutual_info": mean_nmi,
+        "mean_nmi": mean_nmi,
+        "mean_top_bottom_spread": mean_top_bottom_spread,
+        "mean_coverage_ratio": mean_coverage_ratio,
+        "regime_slices": regime_slices,
+        "entropy_regime_summary": entropy_summary["entries"],
+        "entropy_regime_dispersion": entropy_summary["dispersion"],
+        "entropy_regime_strongest_slice": entropy_summary["strongest_slice"],
+        "entropy_regime_weakest_slice": entropy_summary["weakest_slice"],
     }
 
 
@@ -152,7 +234,7 @@ def _comparison_row(entry: dict[str, str]) -> dict[str, Any]:
 
 def _score_sort_key(row: dict[str, Any]) -> tuple[bool, float, float, float, float, float]:
     abs_ic = row["mean_abs_rank_ic"]
-    normalized_mi = row["mean_normalized_mutual_info"]
+    normalized_mi = row.get("mean_nmi", row.get("mean_normalized_mutual_info"))
     corr = row["mean_abs_baseline_corr"]
     distinct = float(row["distinct_instruments"])
     return (
@@ -236,6 +318,7 @@ def _derive_factor_board(
                 "mean_abs_rank_ic": pre_eval.get("mean_abs_rank_ic"),
                 "mean_mutual_info": pre_eval.get("mean_mutual_info"),
                 "mean_normalized_mutual_info": pre_eval.get("mean_normalized_mutual_info"),
+                "mean_nmi": pre_eval.get("mean_nmi"),
                 "mean_top_bottom_spread": pre_eval.get("mean_top_bottom_spread"),
                 "mean_coverage_ratio": pre_eval.get("mean_coverage_ratio"),
                 "incremental_hint": classify_incremental_hint(
@@ -244,6 +327,10 @@ def _derive_factor_board(
                     mean_abs_baseline_corr=baseline_metrics["mean_abs_baseline_corr"],
                 ),
                 "regime_slices": pre_eval.get("regime_slices", {}),
+                "entropy_regime_summary": pre_eval.get("entropy_regime_summary", []),
+                "entropy_regime_dispersion": pre_eval.get("entropy_regime_dispersion"),
+                "entropy_regime_strongest_slice": pre_eval.get("entropy_regime_strongest_slice"),
+                "entropy_regime_weakest_slice": pre_eval.get("entropy_regime_weakest_slice"),
                 "mechanism": factor["mechanism"],
                 "transform_chain": factor["transform_chain"],
                 "forbidden_semantic_assumptions": factor["forbidden_semantic_assumptions"],
@@ -282,14 +369,18 @@ def _render_markdown(payload: dict[str, Any]) -> str:
         factor_family = row.get("factor_family", "")
         baseline_role = row.get("baseline_role", "unknown")
         incremental_hint = row.get("incremental_hint", "unknown")
+        mean_nmi = row.get("mean_nmi", row.get("mean_normalized_mutual_info"))
+        entropy_dispersion = row.get("entropy_regime_dispersion")
+        entropy_text = "" if entropy_dispersion is None else f" entropy_dispersion=`{entropy_dispersion:.4f}`"
         pre_eval_text = (
             f"mean_abs_rank_ic=`{row['mean_abs_rank_ic']:.4f}` "
-            f"mean_nmi=`{row['mean_normalized_mutual_info']:.4f}` "
+            f"mean_nmi=`{mean_nmi:.4f}` "
             f"mean_spread=`{row['mean_top_bottom_spread']:.4f}` "
             f"coverage=`{row['mean_coverage_ratio']:.3f}` "
             f"incremental_hint=`{incremental_hint}`"
+            f"{entropy_text}"
             if row["mean_abs_rank_ic"] is not None
-            and row["mean_normalized_mutual_info"] is not None
+            and mean_nmi is not None
             and row["mean_top_bottom_spread"] is not None
             else "pre_eval=`missing`"
         )
@@ -314,17 +405,22 @@ def _render_markdown(payload: dict[str, Any]) -> str:
             lines.append(f"- `{row['factor_name']}` pre_eval missing")
             continue
         incremental_hint = row.get("incremental_hint", "unknown")
-        lines.append(
+        mean_nmi = row.get("mean_nmi", row.get("mean_normalized_mutual_info"))
+        mean_nmi_text = "na" if mean_nmi is None else f"{mean_nmi:.4f}"
+        note = (
             "- "
             f"`{row['factor_name']}` "
             f"dates=`{','.join(row['evaluated_dates'])}` "
             f"joined_rows=`{row['joined_rows']}` "
             f"mean_rank_ic=`{row['mean_rank_ic']:.4f}` "
             f"mean_abs_rank_ic=`{row['mean_abs_rank_ic']:.4f}` "
-            f"mean_nmi=`{row['mean_normalized_mutual_info']:.4f}` "
+            f"mean_nmi=`{mean_nmi_text}` "
             f"mean_top_bottom_spread=`{row['mean_top_bottom_spread']:.4f}` "
             f"incremental_hint=`{incremental_hint}`"
         )
+        if row.get("entropy_regime_dispersion") is not None:
+            note += f" entropy_dispersion=`{row['entropy_regime_dispersion']:.4f}`"
+        lines.append(note)
     lines.append("")
     lines.append("## Comparison Notes")
     lines.append("")
@@ -358,15 +454,17 @@ def _render_markdown(payload: dict[str, Any]) -> str:
             lines.append(f"- `{row['factor_name']}` regime_slices=`missing`")
             continue
         parts: list[str] = []
+        entropy_entries = regime_slices.get(ENTROPY_SLICE_NAME, [])
+        entropy_digest = _regime_digest(entropy_entries, include_nmi=True)
+        if entropy_digest:
+            parts.append(f"{ENTROPY_SLICE_NAME}=`{entropy_digest}`")
+        if row.get("entropy_regime_dispersion") is not None:
+            parts.append(f"entropy_dispersion=`{row['entropy_regime_dispersion']:.4f}`")
         for slice_name in ["year_grade", "market_turnover_regime", "market_volatility_regime"]:
             entries = regime_slices.get(slice_name, [])
             if not entries:
                 continue
-            digest = ",".join(
-                f"{item['slice_value']}:{item['mean_abs_rank_ic']:.4f}"
-                for item in entries
-                if item["mean_abs_rank_ic"] is not None
-            )
+            digest = _regime_digest(entries, include_nmi=False)
             if digest:
                 parts.append(f"{slice_name}=`{digest}`")
         if not parts:

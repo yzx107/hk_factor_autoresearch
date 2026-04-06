@@ -53,7 +53,7 @@ python3 harness/run_verified_factor.py \
 - `preview.json`
 - `factor_output.parquet`
 
-`diagnostics_summary.json` 会附带日期级 `regime_annotations`，其中包含基于市场成交额分布熵的 `entropy_quantile` 切片。
+`diagnostics_summary.json` 会附带日期级 `regime_annotations`，其中包含基于 turnover distribution entropy 的 `entropy_quantile` 切片。
 
 比较最近一次 run：
 
@@ -101,9 +101,19 @@ python3 harness/autoresearch_cycle.py \
   --notes "daily cycle"
 ```
 
+最小 family batch screen：
+
+```bash
+python3 harness/autoresearch_cycle.py \
+  --config configs/order_trade_interaction_screen.toml \
+  --notes "order-trade interaction entropy screen"
+```
+
 每个 scoreboard 会写出：
 - `scoreboard_summary.json`
 - `scoreboard_report.md`
+
+scoreboard / cycle 默认会把 `mean_nmi`、`entropy_regime_dispersion` 和 `entropy_quantile` 切片摘要带出来做展示与比较。
 
 每个 pre-eval 会写出：
 - `pre_eval_summary.json`
@@ -113,6 +123,9 @@ python3 harness/autoresearch_cycle.py \
 - `rank_ic`
 - `top_bottom_spread`
 - `nmi`
+
+这里的 entropy diagnostics 当前只指 turnover distribution entropy quantile；
+transfer entropy 明确不在这一阶段的 harness 范围内。
 
 每个 Gate B run 会写出：
 - `gate_b_summary.json`

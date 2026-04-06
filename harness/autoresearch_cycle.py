@@ -148,7 +148,7 @@ def _latest_comparison(
 def _recommendation(row: dict[str, Any], policy: SelectionPolicy) -> tuple[str, str]:
     abs_ic = row["mean_abs_rank_ic"]
     signed_ic = row["mean_rank_ic"]
-    normalized_mi = row.get("mean_normalized_mutual_info")
+    normalized_mi = row.get("mean_nmi", row.get("mean_normalized_mutual_info"))
     mean_corr = float(row["mean_abs_peer_corr"])
     strong_linear = abs_ic is not None and float(abs_ic) >= policy.min_abs_rank_ic_keep
     review_linear = abs_ic is not None and float(abs_ic) >= policy.min_abs_rank_ic_review
@@ -190,13 +190,34 @@ def _render_report(payload: dict[str, Any]) -> str:
     lines.append("## Candidate Actions")
     lines.append("")
     for item in payload["recommendations"]:
+        mean_nmi = item.get("mean_nmi", item.get("mean_normalized_mutual_info"))
+        entropy_text = (
+            ""
+            if item.get("entropy_regime_dispersion") is None
+            else f" entropy_dispersion=`{item['entropy_regime_dispersion']}`"
+        )
         lines.append(
             "- "
             f"`{item['factor_name']}` action=`{item['action']}` "
             f"mean_rank_ic=`{item['mean_rank_ic']}` "
             f"mean_abs_rank_ic=`{item['mean_abs_rank_ic']}` "
-            f"mean_nmi=`{item['mean_normalized_mutual_info']}` "
+            f"mean_nmi=`{mean_nmi}` "
             f"peer_corr=`{item['mean_abs_peer_corr']}`"
+            f"{entropy_text}"
+        )
+    lines.append("")
+    lines.append("## Entropy Regime Notes")
+    lines.append("")
+    for item in payload["recommendations"]:
+        if item.get("entropy_regime_dispersion") is None:
+            lines.append(f"- `{item['factor_name']}` entropy_regime=`insufficient_history`")
+            continue
+        lines.append(
+            "- "
+            f"`{item['factor_name']}` "
+            f"strongest_entropy_slice=`{item.get('entropy_regime_strongest_slice', 'unknown')}` "
+            f"weakest_entropy_slice=`{item.get('entropy_regime_weakest_slice', 'unknown')}` "
+            f"entropy_dispersion=`{item['entropy_regime_dispersion']}`"
         )
     lines.append("")
     lines.append("## Inventory")
@@ -347,7 +368,11 @@ def run_autoresearch_cycle(
                 "mean_rank_ic": row["mean_rank_ic"],
                 "mean_abs_rank_ic": row["mean_abs_rank_ic"],
                 "mean_normalized_mutual_info": row.get("mean_normalized_mutual_info"),
+                "mean_nmi": row.get("mean_nmi", row.get("mean_normalized_mutual_info")),
                 "mean_abs_peer_corr": row["mean_abs_peer_corr"],
+                "entropy_regime_dispersion": row.get("entropy_regime_dispersion"),
+                "entropy_regime_strongest_slice": row.get("entropy_regime_strongest_slice"),
+                "entropy_regime_weakest_slice": row.get("entropy_regime_weakest_slice"),
             }
         )
 

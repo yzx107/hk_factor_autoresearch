@@ -87,7 +87,7 @@ class AutoresearchCycleTest(unittest.TestCase):
             {
                 "mean_rank_ic": 0.0,
                 "mean_abs_rank_ic": 0.0,
-                "mean_normalized_mutual_info": 0.03,
+                "mean_nmi": 0.03,
                 "mean_abs_peer_corr": 0.10,
             },
             SelectionPolicy(

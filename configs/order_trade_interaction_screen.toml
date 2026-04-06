@@ -1,0 +1,41 @@
+version = "order_trade_interaction_screen_v1"
+name = "Order-trade interaction family screen"
+owner = "agent"
+anchor_dates = ["2026-01-05", "2026-02-24", "2026-03-13"]
+
+[selection]
+min_abs_rank_ic_keep = 0.05
+min_abs_rank_ic_review = 0.02
+min_normalized_mi_keep = 0.03
+min_normalized_mi_review = 0.015
+max_mean_abs_peer_corr = 0.50
+
+[[candidates]]
+factor = "order_unique_trade_participation_gap"
+card = "research_cards/examples/order_unique_trade_participation_gap_2026.md"
+
+[[candidates]]
+factor = "order_unique_trade_participation_gap_change"
+module = "order_unique_trade_participation_gap"
+transform = "one_day_difference"
+card = "research_cards/examples/order_unique_trade_participation_gap_2026.md"
+
+[[candidates]]
+factor = "order_notional_vs_trade_notional_gap"
+card = "research_cards/examples/order_notional_vs_trade_notional_gap_2026.md"
+
+[[candidates]]
+factor = "order_notional_vs_trade_notional_gap_change"
+module = "order_notional_vs_trade_notional_gap"
+transform = "one_day_difference"
+card = "research_cards/examples/order_notional_vs_trade_notional_gap_2026.md"
+
+[[candidates]]
+factor = "close_vwap_churn_interaction"
+card = "research_cards/examples/close_vwap_churn_interaction_2026.md"
+
+[[candidates]]
+factor = "close_vwap_churn_interaction_change"
+module = "close_vwap_churn_interaction"
+transform = "one_day_difference"
+card = "research_cards/examples/close_vwap_churn_interaction_2026.md"

@@ -217,7 +217,7 @@ def main() -> int:
         f"evaluated_dates={payload['labeled_date_count']} "
         f"joined_rows={payload['joined_rows']} "
         f"mean_abs_rank_ic={payload['mean_abs_rank_ic']} "
-        f"nmi={payload['nmi']}"
+        f"nmi={payload['aggregate_metrics']['nmi']}"
     )
     return 0
 

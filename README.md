@@ -54,7 +54,8 @@
 - `aggregate_metrics.top_bottom_spread`
 - `aggregate_metrics.nmi`
 - 兼容旧消费者时，仍同时保留 `mean_rank_ic` / `mean_top_bottom_spread` / `mean_normalized_mutual_info`
-- `regime_slices.entropy_quantile` 会把日期切成低熵 / 中熵 / 高熵市场状态，用于回答因子在不同信息熵状态下是否更有效
+- `regime_slices.entropy_quantile` 当前明确指的是 `market_turnover_entropy` 的分位切片，也就是成交额分布熵的低熵 / 中熵 / 高熵状态
+- transfer entropy 不在当前 Phase 1/2 范围内
 
 这里没有什么：
 - 没有多 agent 搜索工厂
@@ -142,6 +143,14 @@ python3 harness/export_forward_labels.py --year 2026
 python3 harness/autoresearch_cycle.py
 ```
 
+运行一轮 order-trade interaction family 的最小 batch screen：
+
+```bash
+python3 harness/autoresearch_cycle.py \
+  --config configs/order_trade_interaction_screen.toml \
+  --notes "order-trade interaction entropy screen"
+```
+
 从规格批量生成一组 Gate A 候选：
 
 ```bash
@@ -154,6 +163,11 @@ python3 harness/generate_factor_batch.py \
 ```text
 runs/<scoreboard_id>/scoreboard_report.md
 ```
+
+其中默认会展示：
+- `mean_nmi`
+- `entropy_regime_dispersion`
+- `entropy_quantile` 切片下的 `mean_abs_rank_ic` / `mean_nmi`
 
 每个 verified 因子 run 也会写固定 diagnostics：
 

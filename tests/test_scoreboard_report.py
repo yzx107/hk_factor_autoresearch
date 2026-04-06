@@ -28,12 +28,18 @@ class ScoreboardReportTest(unittest.TestCase):
                     "mean_abs_rank_ic": 0.12,
                     "mean_rank_ic": 0.12,
                     "mean_normalized_mutual_info": 0.03,
+                    "mean_nmi": 0.03,
                     "mean_top_bottom_spread": 0.01,
                     "mean_coverage_ratio": 1.0,
+                    "entropy_regime_dispersion": 0.08,
                     "evaluated_dates": ["2026-03-13"],
                     "joined_rows": 10,
                     "incremental_hint": "potential_incremental",
                     "regime_slices": {
+                        "entropy_quantile": [
+                            {"slice_value": "q1_low_entropy", "mean_abs_rank_ic": 0.12, "mean_nmi": 0.03},
+                            {"slice_value": "q3_high_entropy", "mean_abs_rank_ic": 0.04, "mean_nmi": 0.01},
+                        ],
                         "year_grade": [
                             {"slice_value": "fine_ok", "mean_abs_rank_ic": 0.12}
                         ]
@@ -48,8 +54,10 @@ class ScoreboardReportTest(unittest.TestCase):
         self.assertIn("f1", text)
         self.assertIn("mean_abs_rank_ic", text)
         self.assertIn("mean_nmi", text)
+        self.assertIn("entropy_dispersion=`0.0800`", text)
         self.assertIn("incremental_hint=`potential_incremental`", text)
         self.assertIn("year_grade=`fine_ok:0.1200`", text)
+        self.assertIn("entropy_quantile=`q1_low_entropy:ic=0.1200|nmi=0.0300", text)
 
 
 if __name__ == "__main__":

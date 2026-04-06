@@ -490,6 +490,66 @@
       "status": "keep",
       "run_dir": "/Users/yxin/AI_Workstation/hk_factor_autoresearch/runs/exp_20260330T072230Z_rc_20260330_close_vwap_churn_interaction_2026",
       "card_id": "rc_20260330_close_vwap_churn_interaction_2026"
+    },
+    {
+      "experiment_id": "exp_20260406T134853Z_rc_20260330_order_unique_trade_participation_gap_2026",
+      "parent_experiment_id": "",
+      "factor_name": "order_unique_trade_participation_gap",
+      "card_path": "/Users/yxin/AI_Workstation/hk_factor_autoresearch-main/research_cards/examples/order_unique_trade_participation_gap_2026.md",
+      "gate_a_decision": "pass",
+      "status": "keep",
+      "run_dir": "/Users/yxin/AI_Workstation/hk_factor_autoresearch-main/runs/exp_20260406T134853Z_rc_20260330_order_unique_trade_participation_gap_2026",
+      "card_id": "rc_20260330_order_unique_trade_participation_gap_2026"
+    },
+    {
+      "experiment_id": "exp_20260406T134854Z_rc_20260330_order_unique_trade_participation_gap_2026",
+      "parent_experiment_id": "",
+      "factor_name": "order_unique_trade_participation_gap_change",
+      "card_path": "/Users/yxin/AI_Workstation/hk_factor_autoresearch-main/research_cards/examples/order_unique_trade_participation_gap_2026.md",
+      "gate_a_decision": "pass",
+      "status": "keep",
+      "run_dir": "/Users/yxin/AI_Workstation/hk_factor_autoresearch-main/runs/exp_20260406T134854Z_rc_20260330_order_unique_trade_participation_gap_2026",
+      "card_id": "rc_20260330_order_unique_trade_participation_gap_2026"
+    },
+    {
+      "experiment_id": "exp_20260406T134856Z_rc_20260330_order_notional_vs_trade_notional_gap_2026",
+      "parent_experiment_id": "",
+      "factor_name": "order_notional_vs_trade_notional_gap",
+      "card_path": "/Users/yxin/AI_Workstation/hk_factor_autoresearch-main/research_cards/examples/order_notional_vs_trade_notional_gap_2026.md",
+      "gate_a_decision": "pass",
+      "status": "keep",
+      "run_dir": "/Users/yxin/AI_Workstation/hk_factor_autoresearch-main/runs/exp_20260406T134856Z_rc_20260330_order_notional_vs_trade_notional_gap_2026",
+      "card_id": "rc_20260330_order_notional_vs_trade_notional_gap_2026"
+    },
+    {
+      "experiment_id": "exp_20260406T134857Z_rc_20260330_order_notional_vs_trade_notional_gap_2026",
+      "parent_experiment_id": "",
+      "factor_name": "order_notional_vs_trade_notional_gap_change",
+      "card_path": "/Users/yxin/AI_Workstation/hk_factor_autoresearch-main/research_cards/examples/order_notional_vs_trade_notional_gap_2026.md",
+      "gate_a_decision": "pass",
+      "status": "keep",
+      "run_dir": "/Users/yxin/AI_Workstation/hk_factor_autoresearch-main/runs/exp_20260406T134857Z_rc_20260330_order_notional_vs_trade_notional_gap_2026",
+      "card_id": "rc_20260330_order_notional_vs_trade_notional_gap_2026"
+    },
+    {
+      "experiment_id": "exp_20260406T134858Z_rc_20260330_close_vwap_churn_interaction_2026",
+      "parent_experiment_id": "",
+      "factor_name": "close_vwap_churn_interaction",
+      "card_path": "/Users/yxin/AI_Workstation/hk_factor_autoresearch-main/research_cards/examples/close_vwap_churn_interaction_2026.md",
+      "gate_a_decision": "pass",
+      "status": "keep",
+      "run_dir": "/Users/yxin/AI_Workstation/hk_factor_autoresearch-main/runs/exp_20260406T134858Z_rc_20260330_close_vwap_churn_interaction_2026",
+      "card_id": "rc_20260330_close_vwap_churn_interaction_2026"
+    },
+    {
+      "experiment_id": "exp_20260406T134900Z_rc_20260330_close_vwap_churn_interaction_2026",
+      "parent_experiment_id": "",
+      "factor_name": "close_vwap_churn_interaction_change",
+      "card_path": "/Users/yxin/AI_Workstation/hk_factor_autoresearch-main/research_cards/examples/close_vwap_churn_interaction_2026.md",
+      "gate_a_decision": "pass",
+      "status": "keep",
+      "run_dir": "/Users/yxin/AI_Workstation/hk_factor_autoresearch-main/runs/exp_20260406T134900Z_rc_20260330_close_vwap_churn_interaction_2026",
+      "card_id": "rc_20260330_close_vwap_churn_interaction_2026"
     }
   ]
 }
