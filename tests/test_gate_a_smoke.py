@@ -40,6 +40,30 @@ class GateASmokeTest(unittest.TestCase):
         self.assertEqual(result.decision, "fail")
         self.assertTrue(any("phase_a_caveat_lane" in reason for reason in result.reasons))
 
+    def test_missing_instrument_universe_fails(self) -> None:
+        template = (ROOT / "research_cards/examples/structural_activity_proxy_2026.md").read_text(encoding="utf-8")
+        text = template.replace('instrument_universe = "stock_research_candidate"\n', "", 1)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "missing_instrument_universe.md"
+            path.write_text(text, encoding="utf-8")
+            result = evaluate_card(path)
+        self.assertEqual(result.decision, "fail")
+        self.assertTrue(any("instrument_universe" in reason for reason in result.reasons))
+
+    def test_non_stock_instrument_universe_fails(self) -> None:
+        template = (ROOT / "research_cards/examples/structural_activity_proxy_2026.md").read_text(encoding="utf-8")
+        text = template.replace(
+            'instrument_universe = "stock_research_candidate"',
+            'instrument_universe = "listed_security_unclassified"',
+            1,
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "non_stock_instrument_universe.md"
+            path.write_text(text, encoding="utf-8")
+            result = evaluate_card(path)
+        self.assertEqual(result.decision, "fail")
+        self.assertTrue(any("stock-factor" in reason or "instrument_universe" in reason for reason in result.reasons))
+
 
 if __name__ == "__main__":
     unittest.main()

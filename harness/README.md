@@ -124,16 +124,31 @@ scoreboard / cycle 默认会把 `mean_nmi`、`entropy_regime_dispersion` 和 `en
 - `rank_ic`
 - `top_bottom_spread`
 - `nmi`
+- `nmi_ic_gap`
+- `mi_p_value`
+- `mi_excess_over_null`
+- `mi_significant_date_ratio`
 
 日期级 mutual information 指标的 canonical 字段是：
 - `per_date[*].mi`
 - `per_date[*].nmi`
+- `per_date[*].mi_p_value`
+- `per_date[*].mi_significant`
+- `per_date[*].nmi_ic_gap`
 
 `per_date[*].mutual_info` / `per_date[*].normalized_mutual_info` 当前只保留为兼容 alias。
 
 这里的 entropy diagnostics 当前只指 turnover distribution entropy quantile，
-不要把它理解成更宽泛的“市场熵”或全面市场复杂度；
-transfer entropy 明确不在这一阶段的 harness 范围内。
+并且只作为 descriptive regime labeling；
+不要把它理解成更宽泛的“市场熵”或全面市场复杂度，也不要直接把全样本 quantile 标签当 production regime。
+
+transfer entropy 现在有独立的 exploratory utility：
+
+```bash
+python3 harness/find_lead_factors.py --metric rank_ic
+```
+
+它不属于 fixed pre-eval，也不直接进入当前 Gate B policy。
 
 每个 Gate B run 会写出：
 - `gate_b_summary.json`

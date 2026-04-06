@@ -35,6 +35,9 @@ class RegimeSlicesTest(unittest.TestCase):
                 "labeled_rows": 10,
                 "rank_ic": 0.2,
                 "nmi": 0.03,
+                "nmi_ic_gap": -0.17,
+                "mi_p_value": 0.04,
+                "mi_significant": True,
                 "top_bottom_spread": 0.01,
                 "coverage_ratio": 1.0,
             },
@@ -43,6 +46,9 @@ class RegimeSlicesTest(unittest.TestCase):
                 "labeled_rows": 20,
                 "rank_ic": -0.4,
                 "nmi": 0.05,
+                "nmi_ic_gap": -0.35,
+                "mi_p_value": 0.40,
+                "mi_significant": False,
                 "top_bottom_spread": -0.02,
                 "coverage_ratio": 0.8,
             },
@@ -69,6 +75,9 @@ class RegimeSlicesTest(unittest.TestCase):
         self.assertEqual(year_grade["slice_value"], "fine_ok")
         self.assertEqual(year_grade["date_count"], 2)
         self.assertAlmostEqual(year_grade["mean_abs_rank_ic"], 0.3)
+        self.assertAlmostEqual(year_grade["mean_nmi_ic_gap"], -0.26)
+        self.assertAlmostEqual(year_grade["mean_mi_p_value"], 0.22)
+        self.assertAlmostEqual(year_grade["mi_significant_date_ratio"], 0.5)
         self.assertAlmostEqual(summary["entropy_quantile"][0]["mean_nmi"], 0.03)
 
 

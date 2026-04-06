@@ -24,6 +24,12 @@ DEFAULT_SLICE_COLUMNS = [
     "entropy_quantile",
 ]
 ENTROPY_QUANTILE_COUNT = 3
+REGIME_LABEL_POLICY = {
+    "label_mode": "descriptive_only",
+    "entropy_source": "market_turnover_entropy",
+    "entropy_quantile_method": "full_sample_equal_frequency_v1",
+    "production_caution": "Do not reuse these entropy quantiles as predictive production labels without a rolling window.",
+}
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -78,6 +84,10 @@ def _normalized_turnover_entropy(values: list[float | None]) -> float | None:
     if max_entropy <= 0.0:
         return 0.0
     return entropy / max_entropy
+
+
+def build_regime_metadata() -> dict[str, str]:
+    return dict(REGIME_LABEL_POLICY)
 
 
 def apply_regime_labels(stats: pl.DataFrame) -> pl.DataFrame:
@@ -257,24 +267,32 @@ def build_regime_slice_summary(
     summary: dict[str, list[dict[str, Any]]] = {}
     for slice_name in slice_columns:
         nmi_column = "nmi" if "nmi" in joined.columns else "normalized_mutual_info"
+        aggregations: list[pl.Expr] = [
+            pl.len().alias("date_count"),
+            pl.col("labeled_rows").sum().alias("labeled_rows"),
+            pl.col("rank_ic").mean().alias("mean_rank_ic"),
+            pl.col("rank_ic").abs().mean().alias("mean_abs_rank_ic"),
+            pl.col(nmi_column).mean().alias("mean_normalized_mutual_info"),
+            pl.col("top_bottom_spread").mean().alias("mean_top_bottom_spread"),
+            pl.col("coverage_ratio").mean().alias("mean_coverage_ratio"),
+        ]
+        if "nmi_ic_gap" in joined.columns:
+            aggregations.append(pl.col("nmi_ic_gap").mean().alias("mean_nmi_ic_gap"))
+        if "mi_p_value" in joined.columns:
+            aggregations.append(pl.col("mi_p_value").mean().alias("mean_mi_p_value"))
+        if "mi_significant" in joined.columns:
+            aggregations.append(
+                pl.col("mi_significant").cast(pl.Float64).mean().alias("mi_significant_date_ratio")
+            )
         grouped = (
             joined.filter(pl.col(slice_name).is_not_null())
             .group_by(slice_name)
-            .agg(
-                [
-                    pl.len().alias("date_count"),
-                    pl.col("labeled_rows").sum().alias("labeled_rows"),
-                    pl.col("rank_ic").mean().alias("mean_rank_ic"),
-                    pl.col("rank_ic").abs().mean().alias("mean_abs_rank_ic"),
-                    pl.col(nmi_column).mean().alias("mean_normalized_mutual_info"),
-                    pl.col("top_bottom_spread").mean().alias("mean_top_bottom_spread"),
-                    pl.col("coverage_ratio").mean().alias("mean_coverage_ratio"),
-                ]
-            )
+            .agg(aggregations)
             .sort(slice_name)
         )
-        summary[slice_name] = [
-            {
+        rows: list[dict[str, Any]] = []
+        for row in grouped.to_dicts():
+            item = {
                 "slice_value": row[slice_name],
                 "date_count": int(row["date_count"]),
                 "labeled_rows": int(row["labeled_rows"]),
@@ -297,6 +315,20 @@ def build_regime_slice_summary(
                     None if row["mean_coverage_ratio"] is None else float(row["mean_coverage_ratio"])
                 ),
             }
-            for row in grouped.to_dicts()
-        ]
+            if "mean_nmi_ic_gap" in row:
+                item["mean_nmi_ic_gap"] = (
+                    None if row["mean_nmi_ic_gap"] is None else float(row["mean_nmi_ic_gap"])
+                )
+            if "mean_mi_p_value" in row:
+                item["mean_mi_p_value"] = (
+                    None if row["mean_mi_p_value"] is None else float(row["mean_mi_p_value"])
+                )
+            if "mi_significant_date_ratio" in row:
+                item["mi_significant_date_ratio"] = (
+                    None
+                    if row["mi_significant_date_ratio"] is None
+                    else float(row["mi_significant_date_ratio"])
+                )
+            rows.append(item)
+        summary[slice_name] = rows
     return summary

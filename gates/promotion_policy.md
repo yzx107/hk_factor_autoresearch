@@ -48,12 +48,14 @@
 - mean rank IC
 - mean absolute rank IC
 - normalized mutual information
+- permutation-baselined MI significance
 - coverage ratio
 - sign consistency
 
 当前状态：
 - `pre_eval` 已有基础件
 - `harness/run_gate_b.py` 已把最小 policy 固化为 machine-readable rules
+- Shannon entropy quantile 仍然只作为 descriptive regime diagnostics
 - 当前 Gate B 仍是轻量统计 gate，不等于正式组合回测
 
 ## Gate C: Robustness

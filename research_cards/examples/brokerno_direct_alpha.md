@@ -5,12 +5,13 @@ owner = "codex"
 status = "draft"
 years = ["2026"]
 universe = "phase_a_core"
+instrument_universe = "stock_research_candidate"
 holding_horizon = "30m_to_1d"
 research_modules = ["matched_edge_session_profile"]
 required_fields = ["Time", "Price", "Volume", "BrokerNo"]
 hypothesis = "特定 broker seat 可以预测下一阶段收益。"
 mechanism = "把 BrokerNo 直接当作 alpha 输入。"
-info_boundary = "试图把 BrokerNo 直接升级为 broker alpha。"
+info_boundary = "只在上游 instrument_profile sidecar 的 stock_research_candidate 股票候选池内研究；这不是 fully verified equity universe，仍可能残留 listed_security_unclassified 低位非股票例外；试图把 BrokerNo 直接升级为 broker alpha。"
 failure_modes = ["身份歧义会让信号失效。"]
 expected_risks = ["语义过度宣称。", "lookup 覆盖缺口。", "vendor 导出不匹配。"]
 

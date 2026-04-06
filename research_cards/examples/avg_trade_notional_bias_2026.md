@@ -5,12 +5,13 @@ owner = "codex"
 status = "draft"
 years = ["2026"]
 universe = "phase_a_core"
+instrument_universe = "stock_research_candidate"
 holding_horizon = "30m_to_1d"
 research_modules = ["order_trade_coverage_profile"]
 required_fields = ["date", "source_file", "Price", "Volume"]
 hypothesis = "平均单笔成交额异常偏大的标的，可能代理更集中的参与者结构和短期信息压力。"
 mechanism = "每笔成交的平均 notional 可以区分更像块状的集中交易和碎片化的小单交易，而且不依赖被阻断语义。"
-info_boundary = "只使用 verified 结构性成交字段，以及从 source_file 提取的文件级 instrument key。"
+info_boundary = "只在上游 instrument_profile sidecar 的 stock_research_candidate 股票候选池内研究；这不是 fully verified equity universe，仍可能残留 listed_security_unclassified 低位非股票例外；只使用 verified 结构性成交字段，以及从 source_file 提取的文件级 instrument key。"
 failure_modes = ["信号可能只是价格水平代理。", "效应可能被低流动性标的主导。", "单次事件爆发无法泛化。"]
 expected_risks = ["横截面价格偏置。", "与流动性重叠。", "事件污染。"]
 

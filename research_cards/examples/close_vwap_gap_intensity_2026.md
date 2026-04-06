@@ -5,12 +5,13 @@ owner = "codex"
 status = "draft"
 years = ["2026"]
 universe = "phase_a_core"
+instrument_universe = "stock_research_candidate"
 holding_horizon = "30m_to_1d"
 research_modules = ["matched_edge_session_profile"]
 required_fields = ["date", "source_file", "Time", "row_num_in_file", "Price", "Volume"]
 hypothesis = "尾盘 close-like 成交若明显高于或低于当日 VWAP，可能代理未消化的压力，并延续到下一交易时段。"
 mechanism = "最后观测成交价与成交量加权平均价之间持续存在的日内缺口，可能反映失衡或紧迫性，而且不依赖被阻断的 queue 或 side 语义。"
-info_boundary = "只使用 verified 成交字段、文件级 instrument grouping、按 Time 和 row_num_in_file 选出的最后成交价，以及当日 VWAP。"
+info_boundary = "只在上游 instrument_profile sidecar 的 stock_research_candidate 股票候选池内研究；这不是 fully verified equity universe，仍可能残留 listed_security_unclassified 低位非股票例外；只使用 verified 成交字段、文件级 instrument grouping、按 Time 和 row_num_in_file 选出的最后成交价，以及当日 VWAP。"
 failure_modes = ["信号可能只是噪声化的收盘成交伪影。", "偏离强度可能被事件驱动标的主导。", "一旦对符号做标准化或重中心化，边际优势可能消失。"]
 expected_risks = ["收盘竞价污染。", "大盘股集中。", "短周期反转噪声。"]
 

@@ -181,6 +181,18 @@ def _pre_eval_row(entry: dict[str, str] | None) -> dict[str, Any] | None:
     mean_abs_rank_ic = _pre_eval_metric(summary, official_name="abs_rank_ic", legacy_name="mean_abs_rank_ic")
     mean_mutual_info = _pre_eval_metric(summary, official_name="mi", legacy_name="mean_mutual_info")
     mean_nmi = _pre_eval_metric(summary, official_name="nmi", legacy_name="mean_normalized_mutual_info")
+    mean_nmi_ic_gap = _pre_eval_metric(summary, official_name="nmi_ic_gap", legacy_name="mean_nmi_ic_gap")
+    mean_mi_p_value = _pre_eval_metric(summary, official_name="mi_p_value", legacy_name="mean_mi_p_value")
+    mean_mi_excess_over_null = _pre_eval_metric(
+        summary,
+        official_name="mi_excess_over_null",
+        legacy_name="mean_mi_excess_over_null",
+    )
+    mi_significant_date_ratio = _pre_eval_metric(
+        summary,
+        official_name="mi_significant_date_ratio",
+        legacy_name="mi_significant_date_ratio",
+    )
     mean_top_bottom_spread = _pre_eval_metric(
         summary,
         official_name="top_bottom_spread",
@@ -201,8 +213,13 @@ def _pre_eval_row(entry: dict[str, str] | None) -> dict[str, Any] | None:
         "mean_mutual_info": mean_mutual_info,
         "mean_normalized_mutual_info": mean_nmi,
         "mean_nmi": mean_nmi,
+        "mean_nmi_ic_gap": mean_nmi_ic_gap,
+        "mean_mi_p_value": mean_mi_p_value,
+        "mean_mi_excess_over_null": mean_mi_excess_over_null,
+        "mi_significant_date_ratio": mi_significant_date_ratio,
         "mean_top_bottom_spread": mean_top_bottom_spread,
         "mean_coverage_ratio": mean_coverage_ratio,
+        "regime_metadata": summary.get("regime_metadata", {}),
         "regime_slices": regime_slices,
         "entropy_regime_summary": entropy_summary["entries"],
         "entropy_regime_dispersion": entropy_summary["dispersion"],
@@ -319,6 +336,10 @@ def _derive_factor_board(
                 "mean_mutual_info": pre_eval.get("mean_mutual_info"),
                 "mean_normalized_mutual_info": pre_eval.get("mean_normalized_mutual_info"),
                 "mean_nmi": pre_eval.get("mean_nmi"),
+                "mean_nmi_ic_gap": pre_eval.get("mean_nmi_ic_gap"),
+                "mean_mi_p_value": pre_eval.get("mean_mi_p_value"),
+                "mean_mi_excess_over_null": pre_eval.get("mean_mi_excess_over_null"),
+                "mi_significant_date_ratio": pre_eval.get("mi_significant_date_ratio"),
                 "mean_top_bottom_spread": pre_eval.get("mean_top_bottom_spread"),
                 "mean_coverage_ratio": pre_eval.get("mean_coverage_ratio"),
                 "incremental_hint": classify_incremental_hint(
@@ -327,6 +348,7 @@ def _derive_factor_board(
                     mean_abs_baseline_corr=baseline_metrics["mean_abs_baseline_corr"],
                 ),
                 "regime_slices": pre_eval.get("regime_slices", {}),
+                "regime_metadata": pre_eval.get("regime_metadata", {}),
                 "entropy_regime_summary": pre_eval.get("entropy_regime_summary", []),
                 "entropy_regime_dispersion": pre_eval.get("entropy_regime_dispersion"),
                 "entropy_regime_strongest_slice": pre_eval.get("entropy_regime_strongest_slice"),
@@ -370,15 +392,19 @@ def _render_markdown(payload: dict[str, Any]) -> str:
         baseline_role = row.get("baseline_role", "unknown")
         incremental_hint = row.get("incremental_hint", "unknown")
         mean_nmi = row.get("mean_nmi", row.get("mean_normalized_mutual_info"))
+        mean_nmi_ic_gap = row.get("mean_nmi_ic_gap")
+        mi_sig_ratio = row.get("mi_significant_date_ratio")
         entropy_dispersion = row.get("entropy_regime_dispersion")
         entropy_text = "" if entropy_dispersion is None else f" entropy_dispersion=`{entropy_dispersion:.4f}`"
+        nonlinear_text = "" if mean_nmi_ic_gap is None else f" nmi_ic_gap=`{mean_nmi_ic_gap:.4f}`"
+        mi_sig_text = "" if mi_sig_ratio is None else f" mi_sig_ratio=`{mi_sig_ratio:.3f}`"
         pre_eval_text = (
             f"mean_abs_rank_ic=`{row['mean_abs_rank_ic']:.4f}` "
             f"mean_nmi=`{mean_nmi:.4f}` "
             f"mean_spread=`{row['mean_top_bottom_spread']:.4f}` "
             f"coverage=`{row['mean_coverage_ratio']:.3f}` "
             f"incremental_hint=`{incremental_hint}`"
-            f"{entropy_text}"
+            f"{entropy_text}{nonlinear_text}{mi_sig_text}"
             if row["mean_abs_rank_ic"] is not None
             and mean_nmi is not None
             and row["mean_top_bottom_spread"] is not None
@@ -407,6 +433,8 @@ def _render_markdown(payload: dict[str, Any]) -> str:
         incremental_hint = row.get("incremental_hint", "unknown")
         mean_nmi = row.get("mean_nmi", row.get("mean_normalized_mutual_info"))
         mean_nmi_text = "na" if mean_nmi is None else f"{mean_nmi:.4f}"
+        mean_nmi_ic_gap = row.get("mean_nmi_ic_gap")
+        mi_sig_ratio = row.get("mi_significant_date_ratio")
         note = (
             "- "
             f"`{row['factor_name']}` "
@@ -420,6 +448,10 @@ def _render_markdown(payload: dict[str, Any]) -> str:
         )
         if row.get("entropy_regime_dispersion") is not None:
             note += f" entropy_dispersion=`{row['entropy_regime_dispersion']:.4f}`"
+        if mean_nmi_ic_gap is not None:
+            note += f" nmi_ic_gap=`{mean_nmi_ic_gap:.4f}`"
+        if mi_sig_ratio is not None:
+            note += f" mi_sig_ratio=`{mi_sig_ratio:.3f}`"
         lines.append(note)
     lines.append("")
     lines.append("## Comparison Notes")
@@ -469,6 +501,10 @@ def _render_markdown(payload: dict[str, Any]) -> str:
                 parts.append(f"{slice_name}=`{digest}`")
         if not parts:
             parts.append("regime_slices=`present_but_empty`")
+        regime_metadata = row.get("regime_metadata", {})
+        label_mode = regime_metadata.get("label_mode")
+        if label_mode:
+            parts.append(f"label_mode=`{label_mode}`")
         lines.append(f"- `{row['factor_name']}` " + " ".join(parts))
     return "\n".join(lines) + "\n"
 

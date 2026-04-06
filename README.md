@@ -54,11 +54,17 @@
 - `aggregate_metrics.rank_ic`
 - `aggregate_metrics.top_bottom_spread`
 - `aggregate_metrics.nmi`
+- `aggregate_metrics.nmi_ic_gap`
+- `aggregate_metrics.mi_p_value`
+- `aggregate_metrics.mi_excess_over_null`
+- `aggregate_metrics.mi_significant_date_ratio`
 - `per_date[*].mi` / `per_date[*].nmi` 是日期级 mutual information 指标的 canonical 字段
+- `per_date[*].mi_p_value` / `per_date[*].mi_significant` / `per_date[*].nmi_ic_gap` 用于固定 diagnostics
 - 兼容旧消费者时，仍同时保留 `mean_rank_ic` / `mean_top_bottom_spread` / `mean_normalized_mutual_info`
 - `per_date[*].mutual_info` / `per_date[*].normalized_mutual_info` 只保留为兼容 alias，不再视为新的正式主字段
 - `regime_slices.entropy_quantile` 当前明确指的是 `market_turnover_entropy` 的分位切片，也就是成交额分布熵的低熵 / 中熵 / 高熵状态，不是泛化意义上的“市场熵”
-- transfer entropy 不在当前 Phase 1/2 范围内
+- 这里的 entropy quantile 仍然是 descriptive regime labeling，不是可直接生产化的 predictive regime 标签
+- transfer entropy 不并入当前 fixed pre-eval / Gate；如果要做 lead-lag 研究，走独立 exploratory utility
 
 这里没有什么：
 - 没有多 agent 搜索工厂
@@ -69,6 +75,14 @@
 当前 universe 分层：
 - `phase_a_core`：默认安全面，只消费 `verified v1` 的结构字段
 - `phase_a_caveat_lane`：受限研究面，只允许显式声明的 caveat-only 字段，并默认人工复核
+
+这里还要额外区分证券池边界：
+- `phase_a_core` / `phase_a_caveat_lane` 只定义字段 admissibility，不等于“研究对象已经是纯股票池”
+- 上游已经明确承认 tick universe 不是纯股票池；若需要股票研究池，必须显式使用 `instrument_profile` sidecar 做 universe 选择
+- 本 repo 当前所有 research card 都要求 `instrument_universe = "stock_research_candidate"`
+- 当前推荐写法是 `stock research candidate universe`
+- 当前不应把默认研究对象写成 `fully verified equity universe`
+- `stock_research_candidate` 只是保守候选池，仍可能残留低位非股票例外
 
 最小 smoke：
 
@@ -125,6 +139,14 @@ python3 harness/scoreboard.py \
 ```bash
 python3 harness/run_pre_eval.py \
   --factor structural_activity_proxy
+```
+
+探索性扫描 lead-lag 关系（独立于固定 pre-eval / Gate）：
+
+```bash
+python3 harness/find_lead_factors.py \
+  --metric rank_ic \
+  --factor structural_activity_proxy avg_trade_notional_bias order_lifecycle_churn
 ```
 
 对 shortlist 跑最小正式 Gate B：

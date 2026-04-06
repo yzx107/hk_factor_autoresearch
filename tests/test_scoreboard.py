@@ -40,6 +40,9 @@ class ScoreboardTest(unittest.TestCase):
                             "abs_rank_ic": 0.12,
                             "mi": 0.01,
                             "nmi": 0.03,
+                            "nmi_ic_gap": 0.01,
+                            "mi_p_value": 0.04,
+                            "mi_significant_date_ratio": 1.0,
                             "top_bottom_spread": 0.01,
                             "coverage_ratio": 1.0,
                         },
@@ -49,6 +52,7 @@ class ScoreboardTest(unittest.TestCase):
                         "mean_normalized_mutual_info": 999.0,
                         "mean_top_bottom_spread": 999.0,
                         "mean_coverage_ratio": 999.0,
+                        "regime_metadata": {"label_mode": "descriptive_only"},
                         "regime_slices": {
                             "entropy_quantile": [
                                 {"slice_value": "q1_low_entropy", "mean_abs_rank_ic": 0.12, "mean_nmi": 0.03},
@@ -70,6 +74,8 @@ class ScoreboardTest(unittest.TestCase):
             assert row is not None
             self.assertAlmostEqual(row["mean_nmi"], 0.03)
             self.assertAlmostEqual(row["mean_abs_rank_ic"], 0.12)
+            self.assertAlmostEqual(row["mean_nmi_ic_gap"], 0.01)
+            self.assertAlmostEqual(row["mi_significant_date_ratio"], 1.0)
             self.assertAlmostEqual(row["entropy_regime_dispersion"], 0.08)
             self.assertEqual(row["entropy_regime_strongest_slice"], "q1_low_entropy")
 

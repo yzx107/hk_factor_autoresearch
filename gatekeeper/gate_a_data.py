@@ -22,6 +22,10 @@ SUPPORTED_UNIVERSES = {
     "phase_a_caveat_lane",
 }
 
+SUPPORTED_INSTRUMENT_UNIVERSES = {
+    "stock_research_candidate",
+}
+
 SAFE_FIELDS = {
     "date",
     "table_name",
@@ -85,6 +89,7 @@ REQUIRED_TOP_LEVEL_KEYS = {
     "status",
     "years",
     "universe",
+    "instrument_universe",
     "holding_horizon",
     "research_modules",
     "required_fields",
@@ -174,6 +179,12 @@ def _validate_card_shape(card: dict[str, Any], errors: list[str]) -> None:
     if card.get("universe") not in SUPPORTED_UNIVERSES:
         allowed = ", ".join(sorted(SUPPORTED_UNIVERSES))
         errors.append(f"Phase A currently supports only named universes: {allowed}.")
+    if card.get("instrument_universe") not in SUPPORTED_INSTRUMENT_UNIVERSES:
+        allowed = ", ".join(sorted(SUPPORTED_INSTRUMENT_UNIVERSES))
+        errors.append(
+            "This repo only supports stock-factor research cards with "
+            f"`instrument_universe` in: {allowed}."
+        )
 
 
 def _check_year_and_timing(card: dict[str, Any], errors: list[str], caveats: list[str]) -> list[str]:

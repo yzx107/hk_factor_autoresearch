@@ -5,12 +5,13 @@ owner = "codex"
 status = "draft"
 years = ["2026"]
 universe = "phase_a_caveat_lane"
+instrument_universe = "stock_research_candidate"
 holding_horizon = "5m_to_30m"
 research_modules = ["trade_dir_candidate_signal_profile"]
 required_fields = ["TickID", "Time", "Price", "Volume", "TradeDir"]
 hypothesis = "带 caveat 的 TradeDir 对比，在 2026 年可能携带较弱的短周期方向信息。"
 mechanism = "vendor 方向代码可能与短周期流量失衡相关，但它不是 signed-side truth。"
-info_boundary = "使用上游 admissibility 输出。TradeDir 只被当作需要人工复核的 vendor-derived aggressor proxy。"
+info_boundary = "只在上游 instrument_profile sidecar 的 stock_research_candidate 股票候选池内研究；这不是 fully verified equity universe，仍可能残留 listed_security_unclassified 低位非股票例外；使用上游 admissibility 输出。TradeDir 只被当作需要人工复核的 vendor-derived aggressor proxy。"
 failure_modes = ["考虑成本后对比消失。", "信号只是事件污染。", "vendor 方向语义漂移。"]
 expected_risks = ["必须人工复核。", "不是 signed-flow truth。", "可能只是 vendor 导出伪影。"]
 

@@ -33,19 +33,19 @@ class PreEvalTest(unittest.TestCase):
     def test_build_pre_eval_summary_reports_rank_ic_and_spread(self) -> None:
         factor_df = pl.DataFrame(
             {
-                "date": ["2026-01-05", "2026-01-05", "2026-01-05", "2026-01-05"],
-                "instrument_key": ["00001", "00002", "00003", "00004"],
-                "signal": [4.0, 3.0, 2.0, 1.0],
+                "date": ["2026-01-05"] * 10,
+                "instrument_key": [f"{index:05d}" for index in range(1, 11)],
+                "signal": [float(value) for value in range(10, 0, -1)],
             }
         ).with_columns(pl.col("date").str.to_date())
 
         labels_df = pl.DataFrame(
             {
-                "date": ["2026-01-05", "2026-01-05", "2026-01-05", "2026-01-05"],
-                "next_date": ["2026-01-06", "2026-01-06", "2026-01-06", "2026-01-06"],
-                "instrument_key": ["00001", "00002", "00003", "00004"],
-                LABEL_NAME: [0.4, 0.3, 0.2, 0.1],
-                "label_source": ["test_source"] * 4,
+                "date": ["2026-01-05"] * 10,
+                "next_date": ["2026-01-06"] * 10,
+                "instrument_key": [f"{index:05d}" for index in range(1, 11)],
+                LABEL_NAME: [value / 10.0 for value in range(10, 0, -1)],
+                "label_source": ["test_source"] * 10,
             }
         ).with_columns([pl.col("date").str.to_date(), pl.col("next_date").str.to_date()])
 
@@ -57,7 +57,7 @@ class PreEvalTest(unittest.TestCase):
             top_fraction=0.25,
         )
 
-        self.assertEqual(summary["joined_rows"], 4)
+        self.assertEqual(summary["joined_rows"], 10)
         self.assertEqual(summary["labeled_dates"], ["2026-01-05"])
         self.assertEqual(summary["skipped_dates"], [])
         self.assertAlmostEqual(summary["mean_rank_ic"], 1.0)
@@ -68,10 +68,19 @@ class PreEvalTest(unittest.TestCase):
         self.assertEqual(len(summary["per_date"]), 1)
         self.assertAlmostEqual(summary["aggregate_metrics"]["mi"], summary["mean_mutual_info"])
         self.assertAlmostEqual(summary["aggregate_metrics"]["nmi"], 1.0)
+        self.assertAlmostEqual(summary["aggregate_metrics"]["nmi_ic_gap"], 0.0)
+        self.assertIsNotNone(summary["aggregate_metrics"]["mi_p_value"])
+        self.assertIsNotNone(summary["aggregate_metrics"]["mi_significant_date_ratio"])
         self.assertAlmostEqual(summary["per_date"][0]["nmi"], 1.0)
         self.assertGreater(summary["per_date"][0]["mi"], 0.0)
         self.assertAlmostEqual(summary["per_date"][0]["mi"], summary["per_date"][0]["mutual_info"])
         self.assertAlmostEqual(summary["per_date"][0]["normalized_mutual_info"], 1.0)
+        self.assertEqual(summary["per_date"][0]["mi_bin_count"], 5)
+        self.assertEqual(summary["per_date"][0]["mi_requested_bin_count"], 5)
+        self.assertLess(summary["per_date"][0]["mi_p_value"], 0.05)
+        self.assertTrue(summary["per_date"][0]["mi_significant"])
+        self.assertAlmostEqual(summary["per_date"][0]["nmi_ic_gap"], 0.0)
+        self.assertEqual(summary["regime_metadata"]["label_mode"], "descriptive_only")
 
 
 if __name__ == "__main__":
