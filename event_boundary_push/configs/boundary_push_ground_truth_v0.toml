@@ -1,6 +1,6 @@
 [inputs]
 event_config = "event_boundary_push/configs/boundary_push_event_v0.toml"
-ground_truth_csv = "event_boundary_push/labels/ground_truth_template.csv"
+ground_truth_csv = "/Users/yxin/Downloads/ground_truth_hsci_inclusions.csv"
 
 [matching]
 lookback_days = 60

@@ -149,6 +149,39 @@ def _resolve_optional_path(base: Path, raw_value: str) -> Path | None:
     return path
 
 
+def _discover_available_years(cache_root: Path, table_name: str) -> list[str]:
+    table_root = cache_root / table_name
+    if not table_root.exists():
+        return []
+    years = [
+        path.name.split("=", 1)[1]
+        for path in table_root.iterdir()
+        if path.is_dir() and path.name.startswith("year=")
+    ]
+    return sorted(years)
+
+
+def _format_missing_overlap_error(config: EventModuleConfig) -> str:
+    trade_root = config.cache_root / config.trade_table
+    order_root = config.cache_root / config.order_table
+    trade_years = _discover_available_years(config.cache_root, config.trade_table)
+    order_years = _discover_available_years(config.cache_root, config.order_table)
+    trade_dates = _available_daily_dates(config, config.trade_table)
+    order_dates = _available_daily_dates(config, config.order_table)
+    details = [
+        f"No overlapping daily agg dates found for year {config.year}.",
+        f"cache_root={config.cache_root}",
+        f"trade_table={config.trade_table} exists={trade_root.exists()} available_years={trade_years}",
+        f"order_table={config.order_table} exists={order_root.exists()} available_years={order_years}",
+        f"trade_dates_in_year={len(trade_dates)} order_dates_in_year={len(order_dates)}",
+    ]
+    if config.start_date or config.end_date:
+        details.append(
+            f"date_filter start_date={config.start_date or ''} end_date={config.end_date or ''}"
+        )
+    return " ".join(details)
+
+
 def load_config(config_path: Path) -> EventModuleConfig:
     raw_path = config_path if config_path.is_absolute() else (ROOT / config_path).resolve()
     payload = tomllib.loads(raw_path.read_text(encoding="utf-8"))
@@ -301,7 +334,7 @@ def _load_optional_control_features(config: EventModuleConfig) -> pl.DataFrame |
 def build_trade_order_panel(config: EventModuleConfig) -> pl.DataFrame:
     dates = available_event_dates(config)
     if not dates:
-        raise FileNotFoundError(f"No overlapping daily agg dates found for year {config.year}.")
+        raise FileNotFoundError(_format_missing_overlap_error(config))
 
     trades = _load_daily_table(
         config=config,

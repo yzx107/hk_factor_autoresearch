@@ -4,6 +4,7 @@
 它不是普通单因子，也不是 production trading system。
 
 模块目标：
+- 研究“入港股通前窗口”可能出现的市场行为事件，而不是直接重建官方纳入规则
 - 在 IPO / 次新股扫描池里检测 `control_build -> boundary_approach -> push_regime` 这类可疑路径事件
 - 生成稳定的事件案例表（event cases）
 - 导出面向人工复核的 review pack
@@ -13,6 +14,7 @@
 - 不改写 `Phase A / pre_eval / gate_b / registry` 主线
 - 不做 production backtest / execution
 - 不伪装成完整指数历史边界重建
+- 不声称等价于官方港股通纳入判定
 
 ## 输入依赖
 
@@ -106,7 +108,7 @@ review pack 是事件案例视角，不是单日 candidate 视角。
 
 ## Ground-Truth Validation
 
-模块附带一个轻量 `ground-truth validation harness`，用于把 `event_cases` 和历史纳入 / 特殊事件样本对齐，输出：
+模块附带一个轻量 `ground-truth validation harness`，用于把 `event_cases` 和历史港股通纳入 / 特殊事件样本对齐，输出：
 - `ground_truth_matches.parquet`
 - `ground_truth_noise_cases.parquet`
 - `ground_truth_validation_summary.json`
@@ -123,7 +125,7 @@ python3 event_boundary_push/validate_ground_truth.py \
 ```
 
 这一步不是交易回测，而是事件命中验证：
-- 看历史纳入 / 事件样本是否被模块提前捕捉
+- 看历史港股通纳入 / 事件样本是否被模块提前捕捉
 - 看提前量（lead days）
 - 看哪些 event cases 没有对应 ground truth，可作为噪音 proxy
 

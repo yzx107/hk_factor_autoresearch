@@ -287,8 +287,14 @@ class EventBoundaryPushTest(unittest.TestCase):
             )
 
             config = load_config(config_path)
-            with self.assertRaises(FileNotFoundError):
+            with self.assertRaises(FileNotFoundError) as exc_info:
                 build_event_universe_frame(config)
+            message = str(exc_info.exception)
+            self.assertIn("No overlapping daily agg dates found for year 2026.", message)
+            self.assertIn(f"cache_root={cache_root}", message)
+            self.assertIn("trade_table=verified_trades_daily", message)
+            self.assertIn("order_table=verified_orders_daily", message)
+            self.assertIn("exists=False", message)
     def _write_daily_inputs(self, cache_root: Path) -> None:
         trade_rows = {
             "00001": {
