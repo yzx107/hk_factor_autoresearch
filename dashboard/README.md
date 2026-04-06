@@ -24,10 +24,18 @@ pip install -e ".[dashboard]"
 面板当前支持：
 
 - 浏览最新 `scoreboard_summary.json`
-- 查看因子总体 pre-eval 指标
-- 比较两个因子的 per-date 表现
+- 按因子家族和关键词筛选候选
+- 切换散点图横纵轴指标，快速看不同前沿
+- 生成筛选后榜单，按指定指标排序
+- 比较两个因子的总体指标与 per-date 表现
+- 复用已有 `comparison_summary.json`，直接看相关性与 Top overlap
 - 查看 regime slice 表现
 - 读取单个 pre-eval summary 并画时间序列/条形图
+
+可选环境变量：
+
+- `HK_FACTOR_RUNS_DIR=/abs/path/to/runs`：改成读取别的 `runs/` 目录
+- `HK_FACTOR_DASH_DEBUG=1`：需要 Dash debug/reloader 时再显式打开
 
 这层适合做：
 
