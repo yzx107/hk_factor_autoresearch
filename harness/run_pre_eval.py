@@ -24,6 +24,7 @@ from evaluation.pre_eval import (
 from diagnostics.regime_slices import build_regime_slice_frame
 from harness.compare_factors import read_experiment_log
 from harness.daily_agg import load_daily_agg_lazy, missing_daily_agg_dates
+from harness.instrument_universe import DEFAULT_TARGET_INSTRUMENT_UNIVERSE
 from harness.verified_reader import load_verified_lazy, next_available_dates
 
 PRE_EVAL_LOG = ROOT / "registry" / "pre_eval_log.tsv"
@@ -130,7 +131,9 @@ def run_pre_eval_for_factor(
     entry = _find_experiment(entries, factor_name, experiment_id)
     run_summary = _load_run_summary(entry)
     score_column = str(run_summary["score_column"])
-    target_instrument_universe = str(run_summary.get("target_instrument_universe", ""))
+    target_instrument_universe = str(
+        run_summary.get("target_instrument_universe", DEFAULT_TARGET_INSTRUMENT_UNIVERSE)
+    )
     factor_df = _load_factor_output(entry)
     factor_dates = sorted(
         {value.isoformat() if hasattr(value, "isoformat") else str(value) for value in factor_df["date"]}

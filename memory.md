@@ -48,6 +48,7 @@
 - Transfer entropy now exists as a separate exploratory utility:
   - `evaluation/transfer_entropy.py`
   - `harness/find_lead_factors.py`
+- The exploratory TE summary now records permutation-based significance and a policy-trace block.
 - It is not part of the fixed Phase 1 pre-eval contract.
 - It is not part of the default Gate B decision policy.
 - Do not conflate it with `market_turnover_entropy` or `entropy_quantile`.
@@ -62,6 +63,8 @@
 - Start by reading this file, then `README.md`, `harness/README.md`, and `gates/promotion_policy.md`.
 - If the task talks about “stocks”, “equity universe”, or cross-sectional factor coverage, also read:
   - `/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/instrument_universe_classification_boundary_2026-04-06.md`
+- If local runs complain that `instrument_profile` is missing, use:
+  - `python3 harness/bootstrap_universe.py`
 - If continuing information-theory work, preserve the current boundary:
   - keep Shannon-entropy slicing wording narrow
   - state clearly that transfer entropy is exploratory and separate from fixed pre-eval

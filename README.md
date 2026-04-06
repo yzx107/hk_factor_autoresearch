@@ -93,6 +93,12 @@
 python3 -m unittest tests/test_gate_a_smoke.py
 ```
 
+检查股票 target universe sidecar 是否就绪：
+
+```bash
+python3 harness/bootstrap_universe.py
+```
+
 最小 harness run：
 
 ```bash
@@ -151,6 +157,9 @@ python3 harness/find_lead_factors.py \
   --metric rank_ic \
   --factor structural_activity_proxy avg_trade_notional_bias order_lifecycle_churn
 ```
+
+这个 TE utility 现在会同时输出 permutation-based `p_value` 和 policy trace，
+但它仍然只是 exploratory summary，不是默认 scoreboard / Gate 输入。
 
 对 shortlist 跑最小正式 Gate B：
 

@@ -5,8 +5,10 @@ from __future__ import annotations
 from collections import Counter
 from dataclasses import dataclass
 from math import fsum, log
+from random import Random
 
 from evaluation.metrics import adaptive_bin_count, equal_frequency_bins
+from evaluation.significance import SignificanceResult, permutation_significance
 
 
 @dataclass(frozen=True)
@@ -108,3 +110,63 @@ def transfer_entropy(
         min_bins=min_bins,
         max_bins=max_bins,
     ).transfer_entropy
+
+
+def transfer_entropy_permutation_test(
+    source: list[float],
+    target: list[float],
+    *,
+    lag: int = 1,
+    bins: int | None = None,
+    min_bins: int = 2,
+    max_bins: int = 8,
+    permutations: int = 200,
+    seed: int = 0,
+    p_value_threshold: float = 0.05,
+) -> SignificanceResult:
+    if len(source) != len(target):
+        raise ValueError("source and target must have the same length.")
+    if permutations < 1:
+        raise ValueError("permutations must be >= 1.")
+
+    observed = transfer_entropy_summary(
+        source,
+        target,
+        lag=lag,
+        bins=bins,
+        min_bins=min_bins,
+        max_bins=max_bins,
+    )
+    if observed.observation_count <= 1:
+        return SignificanceResult(
+            method="transfer_entropy_permutation_test_v1",
+            statistic=0.0,
+            passed=False,
+            note="Need at least two effective observations.",
+            p_value=None,
+            threshold=p_value_threshold,
+        )
+
+    rng = Random(seed)
+    null_values: list[float] = []
+    for _ in range(permutations):
+        shuffled = list(source)
+        rng.shuffle(shuffled)
+        null_values.append(
+            transfer_entropy(
+                shuffled,
+                target,
+                lag=lag,
+                bins=bins,
+                min_bins=min_bins,
+                max_bins=max_bins,
+            )
+        )
+
+    return permutation_significance(
+        observed.transfer_entropy,
+        null_values,
+        threshold=p_value_threshold,
+        method="transfer_entropy_permutation_test_v1",
+        note="Permutation baseline for exploratory transfer-entropy bias control.",
+    )

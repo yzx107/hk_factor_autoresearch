@@ -9,6 +9,7 @@ import polars as pl
 
 from harness.instrument_universe import (
     apply_target_instrument_universe_filter,
+    instrument_profile_bootstrap_message,
     load_target_instrument_universe_lazy,
 )
 
@@ -31,6 +32,14 @@ class InstrumentUniverseTest(unittest.TestCase):
 
         self.assertEqual(out.to_dicts(), [{"instrument_key": "00002", "value": 2.0}])
 
+    def test_apply_target_instrument_universe_filter_requires_explicit_target(self) -> None:
+        frame = pl.DataFrame({"instrument_key": ["00001"]}).lazy()
+        with self.assertRaisesRegex(ValueError, "target_instrument_universe is required"):
+            apply_target_instrument_universe_filter(
+                frame,
+                target_instrument_universe="",
+            )
+
     def test_load_target_instrument_universe_lazy_reads_sidecar(self) -> None:
         with TemporaryDirectory() as tmpdir:
             path = Path(tmpdir) / "instrument_profile.parquet"
@@ -44,3 +53,8 @@ class InstrumentUniverseTest(unittest.TestCase):
                 out = load_target_instrument_universe_lazy("stock_research_candidate").collect()
 
         self.assertEqual(out["instrument_key"].to_list(), ["00001", "00003"])
+
+    def test_bootstrap_message_points_to_upstream_builder(self) -> None:
+        message = instrument_profile_bootstrap_message(Path("/tmp/missing.parquet"))
+        self.assertIn("python -m Scripts.build_instrument_profile --years 2025,2026", message)
+        self.assertIn("python -m Scripts.build_instrument_profile --print-plan", message)

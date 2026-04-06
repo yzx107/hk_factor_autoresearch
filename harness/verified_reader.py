@@ -9,7 +9,10 @@ from typing import Any
 
 import polars as pl
 
-from harness.instrument_universe import apply_target_instrument_universe_filter
+from harness.instrument_universe import (
+    DEFAULT_TARGET_INSTRUMENT_UNIVERSE,
+    apply_target_instrument_universe_filter,
+)
 
 VERIFIED_ROOT = Path("/Volumes/Data/港股Tick数据/verified")
 VALID_TABLES = {"verified_trades", "verified_orders"}
@@ -134,7 +137,7 @@ def load_verified_lazy(
     dates: list[str],
     columns: list[str] | None = None,
     *,
-    target_instrument_universe: str = "",
+    target_instrument_universe: str = DEFAULT_TARGET_INSTRUMENT_UNIVERSE,
     allowed_instruments: pl.LazyFrame | None = None,
 ) -> pl.LazyFrame:
     paths = build_partition_paths(table_name, dates)
@@ -146,31 +149,37 @@ def load_verified_lazy(
             base_columns.append("source_file")
         scan = scan.select(base_columns)
         scan = scan.with_columns(instrument_key_expr())
-        if target_instrument_universe:
-            scan = apply_target_instrument_universe_filter(
-                scan,
-                target_instrument_universe=target_instrument_universe,
-                allowed_instruments=allowed_instruments,
-            )
-        final_columns = list(dict.fromkeys(requested_columns + ["instrument_key"]))
-        return scan.select(final_columns)
-    scan = scan.with_columns(instrument_key_expr())
-    if target_instrument_universe:
         scan = apply_target_instrument_universe_filter(
             scan,
             target_instrument_universe=target_instrument_universe,
             allowed_instruments=allowed_instruments,
         )
+        final_columns = list(dict.fromkeys(requested_columns + ["instrument_key"]))
+        return scan.select(final_columns)
+    scan = scan.with_columns(instrument_key_expr())
+    scan = apply_target_instrument_universe_filter(
+        scan,
+        target_instrument_universe=target_instrument_universe,
+        allowed_instruments=allowed_instruments,
+    )
     return scan
 
 
 def main(argv: list[str] | None = None) -> int:
     args = list(argv or sys.argv[1:])
     if len(args) < 2:
-        print("usage: python3 harness/verified_reader.py <table> <date> [<date>...]")
+        print(
+            "usage: python3 harness/verified_reader.py "
+            "<table> <date> [<date>...] "
+            f"[target_instrument_universe defaults to {DEFAULT_TARGET_INSTRUMENT_UNIVERSE}]"
+        )
         return 1
     table_name, *dates = args
-    frame = load_verified_lazy(table_name, dates).limit(5).collect()
+    frame = load_verified_lazy(
+        table_name,
+        dates,
+        target_instrument_universe=DEFAULT_TARGET_INSTRUMENT_UNIVERSE,
+    ).limit(5).collect()
     print(frame)
     return 0
 

@@ -16,6 +16,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from harness.daily_agg import DAILY_AGG_ROOT, daily_agg_partition_path
+from harness.instrument_universe import DEFAULT_TARGET_INSTRUMENT_UNIVERSE
 from harness.verified_reader import available_dates, load_verified_lazy
 
 
@@ -87,6 +88,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--dates", nargs="*", default=[], help="Optional explicit dates to build.")
     parser.add_argument("--date-from", default="", help="Optional lower date bound like 2026-01-02.")
     parser.add_argument("--date-to", default="", help="Optional upper date bound like 2026-01-30.")
+    parser.add_argument(
+        "--target-instrument-universe",
+        default=DEFAULT_TARGET_INSTRUMENT_UNIVERSE,
+        help="Target instrument universe to cache for. Defaults to the stock research candidate lane.",
+    )
     parser.add_argument("--force", action="store_true", help="Overwrite existing cache files.")
     parser.add_argument("--notes", default="", help="Short build note.")
     return parser.parse_args()
@@ -115,6 +121,7 @@ def build_daily_agg_for_date(
     *,
     daily_table: str,
     date: str,
+    target_instrument_universe: str = DEFAULT_TARGET_INSTRUMENT_UNIVERSE,
     force: bool = False,
 ) -> dict[str, object]:
     path = daily_agg_partition_path(daily_table, date)
@@ -123,6 +130,7 @@ def build_daily_agg_for_date(
         return {
             "date": date,
             "table_name": daily_table,
+            "target_instrument_universe": target_instrument_universe,
             "status": "skipped_existing",
             "row_count": cached.height,
             "path": str(path),
@@ -132,12 +140,18 @@ def build_daily_agg_for_date(
     source_table = SOURCE_TABLE_BY_DAILY_TABLE[daily_table]
     source_columns = SOURCE_COLUMNS_BY_DAILY_TABLE[daily_table]
     builder = BUILDERS[daily_table]
-    lazy_frame = load_verified_lazy(source_table, [date], source_columns)
+    lazy_frame = load_verified_lazy(
+        source_table,
+        [date],
+        source_columns,
+        target_instrument_universe=target_instrument_universe,
+    )
     frame = builder(lazy_frame)
     frame.write_parquet(path)
     return {
         "date": date,
         "table_name": daily_table,
+        "target_instrument_universe": target_instrument_universe,
         "status": "built",
         "row_count": frame.height,
         "path": str(path),
@@ -149,10 +163,19 @@ def build_daily_agg_table(
     daily_table: str,
     year: str,
     dates: list[str],
+    target_instrument_universe: str = DEFAULT_TARGET_INSTRUMENT_UNIVERSE,
     force: bool = False,
     notes: str = "",
 ) -> tuple[str, dict[str, object], Path]:
-    results = [build_daily_agg_for_date(daily_table=daily_table, date=date, force=force) for date in dates]
+    results = [
+        build_daily_agg_for_date(
+            daily_table=daily_table,
+            date=date,
+            target_instrument_universe=target_instrument_universe,
+            force=force,
+        )
+        for date in dates
+    ]
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     build_id = f"daily_agg_{daily_table}_{year}_{stamp}"
     summary_dir = DAILY_AGG_ROOT / "builds" / build_id
@@ -163,6 +186,7 @@ def build_daily_agg_table(
         "created_at": datetime.now(timezone.utc).isoformat(),
         "table_name": daily_table,
         "year": year,
+        "target_instrument_universe": target_instrument_universe,
         "date_count": len(dates),
         "built_count": sum(1 for item in results if item["status"] == "built"),
         "skipped_count": sum(1 for item in results if item["status"] == "skipped_existing"),
@@ -194,6 +218,7 @@ def main() -> int:
                 daily_table=table_name,
                 year=args.year,
                 dates=dates,
+                target_instrument_universe=args.target_instrument_universe,
                 force=args.force,
                 notes=args.notes,
             )

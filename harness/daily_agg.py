@@ -6,7 +6,10 @@ from pathlib import Path
 
 import polars as pl
 
-from harness.instrument_universe import apply_target_instrument_universe_filter
+from harness.instrument_universe import (
+    DEFAULT_TARGET_INSTRUMENT_UNIVERSE,
+    apply_target_instrument_universe_filter,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 DAILY_AGG_ROOT = ROOT / "cache" / "daily_agg"
@@ -73,7 +76,7 @@ def load_daily_agg_lazy(
     dates: list[str],
     columns: list[str] | None = None,
     *,
-    target_instrument_universe: str = "",
+    target_instrument_universe: str = DEFAULT_TARGET_INSTRUMENT_UNIVERSE,
     allowed_instruments: pl.LazyFrame | None = None,
 ) -> pl.LazyFrame:
     scan = pl.scan_parquet([str(path) for path in build_daily_agg_paths(table_name, dates)])
@@ -83,12 +86,11 @@ def load_daily_agg_lazy(
         if target_instrument_universe and "instrument_key" not in base_columns:
             base_columns.append("instrument_key")
         scan = scan.select(base_columns)
-    if target_instrument_universe:
-        scan = apply_target_instrument_universe_filter(
-            scan,
-            target_instrument_universe=target_instrument_universe,
-            allowed_instruments=allowed_instruments,
-        )
+    scan = apply_target_instrument_universe_filter(
+        scan,
+        target_instrument_universe=target_instrument_universe,
+        allowed_instruments=allowed_instruments,
+    )
     if columns:
         scan = scan.select(requested_columns)
     return scan
@@ -97,7 +99,7 @@ def load_daily_agg_lazy(
 def build_daily_agg_cache_loader(
     default_columns: dict[str, list[str]] | None = None,
     *,
-    target_instrument_universe: str = "",
+    target_instrument_universe: str = DEFAULT_TARGET_INSTRUMENT_UNIVERSE,
 ):
     column_map = dict(default_columns or {})
 

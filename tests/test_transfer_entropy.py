@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from evaluation.transfer_entropy import transfer_entropy
+from evaluation.transfer_entropy import transfer_entropy, transfer_entropy_permutation_test
 from harness.find_lead_factors import build_lead_factor_summary
 
 
@@ -50,10 +50,35 @@ class TransferEntropyTest(unittest.TestCase):
             lag=1,
             bins=2,
             min_overlap=6,
+            permutations=40,
+            significance_threshold=0.2,
+            generated_at="2026-04-07T00:00:00+00:00",
         )
 
         self.assertEqual(summary["ranked_edges"][0]["source_factor"], "leader")
         self.assertEqual(summary["ranked_edges"][0]["target_factor"], "follower")
+        self.assertIn("transfer_entropy_p_value", summary["ranked_edges"][0])
+        self.assertIn("policy_trace", summary)
+        self.assertEqual(summary["policy_trace"]["source_layer"], "autoresearch_pre_eval_summary")
+        self.assertFalse(summary["policy_trace"]["formal_consumption_eligible"])
+
+    def test_transfer_entropy_permutation_test_returns_p_value(self) -> None:
+        source = [0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0]
+        target = [0.0] + source[:-1]
+
+        result = transfer_entropy_permutation_test(
+            source,
+            target,
+            lag=1,
+            bins=2,
+            permutations=20,
+            seed=7,
+            p_value_threshold=0.2,
+        )
+
+        self.assertIsNotNone(result.p_value)
+        self.assertGreaterEqual(result.p_value, 0.0)
+        self.assertLessEqual(result.p_value, 1.0)
 
 
 if __name__ == "__main__":
