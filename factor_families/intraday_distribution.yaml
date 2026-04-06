@@ -1,0 +1,34 @@
+family_id: intraday_distribution
+family_name: 盘内分布形态
+mechanism_hypothesis: 用成交的时段结构、额度集中度和到达节奏来代理日内微观信息状态，捕捉现有日级聚合因子丢失的盘内维度。
+core_observables:
+  - Time
+  - Price
+  - Volume
+  - trade_interval
+  - session_turnover_share
+  - trade_notional_gini
+approved_factor_ids:
+  - session_activity_shift_v1
+  - session_activity_shift_change_v1
+  - trade_size_concentration_v1
+  - trade_size_concentration_change_v1
+  - trade_arrival_burstiness_v1
+  - trade_arrival_burstiness_change_v1
+rejected_factor_ids: []
+baseline_refs:
+  - structural_activity_proxy
+  - avg_trade_notional_bias
+current_best_variant: pending_first_cycle
+known_failure_modes:
+  - 盘中休市分割可能引入结构性偏差
+  - Time 字段精度限制可能拉平 burstiness 信号
+  - Gini 在极低成交日不可靠
+  - session shift 在半日交易日退化
+  - 容易和 activity / notional 日级因子产生部分共线
+forbidden_semantic_assumptions:
+  - no_trade_side_truth
+  - no_broker_identity_truth
+  - no_queue_semantics
+status: active
+notes: 新 family，核心思路是从现有安全字段中挖掘盘内分布形态信息，补充目前所有因子只用日级聚合而丢失的时间结构和规模结构维度。

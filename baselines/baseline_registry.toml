@@ -35,3 +35,24 @@ factors = [
   "close_vwap_churn_interaction",
   "close_vwap_churn_interaction_change",
 ]
+
+[groups.intraday_distribution]
+description = "Intraday distribution factors: session shift, trade size Gini, and arrival burstiness."
+factors = [
+  "session_activity_shift",
+  "session_activity_shift_change",
+  "trade_size_concentration",
+  "trade_size_concentration_change",
+  "trade_arrival_burstiness",
+  "trade_arrival_burstiness_change",
+]
+
+[groups.directional_proxy]
+description = "Caveat-lane directional proxy factors using vendor-derived TradeDir."
+factors = [
+  "trade_dir_buy_ratio",
+  "trade_dir_buy_ratio_change",
+  "trade_dir_imbalance_intensity",
+  "trade_dir_imbalance_intensity_change",
+]
+
