@@ -65,7 +65,7 @@
 - year slice
 - volatility slice
 - turnover slice
-- entropy slice
+- entropy slice（当前仅指 turnover distribution entropy quantile，不含 transfer entropy）
 - open / midday / close
 - large / mid / small cap
 
@@ -76,6 +76,7 @@
 
 当前状态：
 - 只定义政策，尚未标准化落地
+- transfer entropy 不在当前 Phase 1/2 gate 范围内
 
 ## Gate D: Incrementality
 

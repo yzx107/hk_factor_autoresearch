@@ -323,6 +323,7 @@ uses_queue_semantics = false
 ## Default Evaluation Outputs
 
 当这个候选走固定 harness 时，默认会产出：
+- `aggregate_metrics.mi`
 - `aggregate_metrics.rank_ic`
 - `aggregate_metrics.top_bottom_spread`
 - `aggregate_metrics.nmi`

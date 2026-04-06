@@ -50,11 +50,14 @@
 - `gates/promotion_policy.md`：把 Gate A/B/C/D/E 的目标和输出固定下来
 
 固定 pre-eval 当前输出：
+- `aggregate_metrics.mi`
 - `aggregate_metrics.rank_ic`
 - `aggregate_metrics.top_bottom_spread`
 - `aggregate_metrics.nmi`
+- `per_date[*].mi` / `per_date[*].nmi` 是日期级 mutual information 指标的 canonical 字段
 - 兼容旧消费者时，仍同时保留 `mean_rank_ic` / `mean_top_bottom_spread` / `mean_normalized_mutual_info`
-- `regime_slices.entropy_quantile` 当前明确指的是 `market_turnover_entropy` 的分位切片，也就是成交额分布熵的低熵 / 中熵 / 高熵状态
+- `per_date[*].mutual_info` / `per_date[*].normalized_mutual_info` 只保留为兼容 alias，不再视为新的正式主字段
+- `regime_slices.entropy_quantile` 当前明确指的是 `market_turnover_entropy` 的分位切片，也就是成交额分布熵的低熵 / 中熵 / 高熵状态，不是泛化意义上的“市场熵”
 - transfer entropy 不在当前 Phase 1/2 范围内
 
 这里没有什么：
@@ -168,6 +171,9 @@ runs/<scoreboard_id>/scoreboard_report.md
 - `mean_nmi`
 - `entropy_regime_dispersion`
 - `entropy_quantile` 切片下的 `mean_abs_rank_ic` / `mean_nmi`
+
+这里的 `entropy_quantile` 仍然只对应 turnover distribution entropy quantile，
+不是更宽泛的市场复杂度刻画；transfer entropy 也还没有进入这一阶段。
 
 每个 verified 因子 run 也会写固定 diagnostics：
 

@@ -120,11 +120,19 @@ scoreboard / cycle 默认会把 `mean_nmi`、`entropy_regime_dispersion` 和 `en
 - `label_preview.json`
 
 `pre_eval_summary.json` 的正式聚合指标放在 `aggregate_metrics`，最小固定字段包括：
+- `mi`
 - `rank_ic`
 - `top_bottom_spread`
 - `nmi`
 
-这里的 entropy diagnostics 当前只指 turnover distribution entropy quantile；
+日期级 mutual information 指标的 canonical 字段是：
+- `per_date[*].mi`
+- `per_date[*].nmi`
+
+`per_date[*].mutual_info` / `per_date[*].normalized_mutual_info` 当前只保留为兼容 alias。
+
+这里的 entropy diagnostics 当前只指 turnover distribution entropy quantile，
+不要把它理解成更宽泛的“市场熵”或全面市场复杂度；
 transfer entropy 明确不在这一阶段的 harness 范围内。
 
 每个 Gate B run 会写出：

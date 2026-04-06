@@ -269,27 +269,25 @@ def build_pre_eval_summary(
                 requested_bins=mi_bin_count,
             )
             mutual_info_by_date[date_key] = {
-                "mutual_info": mutual_info,
-                "normalized_mutual_info": normalized_mutual_info,
+                "mi": mutual_info,
+                "nmi": normalized_mutual_info,
                 "mi_bin_count": effective_bins,
             }
 
         for row in per_date_rows:
             metrics = mutual_info_by_date.get(str(row["date"]), {})
-            row["mutual_info"] = metrics.get("mutual_info")
-            row["normalized_mutual_info"] = metrics.get("normalized_mutual_info")
+            row["mi"] = metrics.get("mi")
+            row["nmi"] = metrics.get("nmi")
+            # Keep long-form aliases while downstream readers migrate to the canonical
+            # per-date contract: `mi` / `nmi`.
+            row["mutual_info"] = row["mi"]
+            row["normalized_mutual_info"] = row["nmi"]
             row["mi_bin_count"] = metrics.get("mi_bin_count")
 
         joined_preview = _records(joined.sort(["date", score_column], descending=[False, True]).head(10))
         rank_ic_values = [float(item["rank_ic"]) for item in per_date_rows if item["rank_ic"] is not None]
-        mutual_info_values = [
-            float(item["mutual_info"]) for item in per_date_rows if item.get("mutual_info") is not None
-        ]
-        normalized_mutual_info_values = [
-            float(item["normalized_mutual_info"])
-            for item in per_date_rows
-            if item.get("normalized_mutual_info") is not None
-        ]
+        mutual_info_values = [float(item["mi"]) for item in per_date_rows if item.get("mi") is not None]
+        normalized_mutual_info_values = [float(item["nmi"]) for item in per_date_rows if item.get("nmi") is not None]
         spread_values = [
             float(item["top_bottom_spread"]) for item in per_date_rows if item["top_bottom_spread"] is not None
         ]
@@ -302,6 +300,9 @@ def build_pre_eval_summary(
         mean_coverage_ratio = _average(coverage_values)
 
     regime_slices = build_regime_slice_summary(per_date_rows, date_annotations)
+    # Canonical summary contract lives under `aggregate_metrics`, with per-date
+    # metrics exposed as `mi` / `nmi`. The legacy `mean_*` and long-form mutual
+    # information aliases are kept for compatibility with existing readers.
     aggregate_metrics = {
         "rank_ic": mean_rank_ic,
         "abs_rank_ic": mean_abs_rank_ic,

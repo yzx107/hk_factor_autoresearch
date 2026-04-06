@@ -66,7 +66,11 @@ class PreEvalTest(unittest.TestCase):
         self.assertGreater(summary["mean_mutual_info"], 0.0)
         self.assertGreater(summary["mean_top_bottom_spread"], 0.0)
         self.assertEqual(len(summary["per_date"]), 1)
+        self.assertAlmostEqual(summary["aggregate_metrics"]["mi"], summary["mean_mutual_info"])
         self.assertAlmostEqual(summary["aggregate_metrics"]["nmi"], 1.0)
+        self.assertAlmostEqual(summary["per_date"][0]["nmi"], 1.0)
+        self.assertGreater(summary["per_date"][0]["mi"], 0.0)
+        self.assertAlmostEqual(summary["per_date"][0]["mi"], summary["per_date"][0]["mutual_info"])
         self.assertAlmostEqual(summary["per_date"][0]["normalized_mutual_info"], 1.0)
 
 
