@@ -1,0 +1,31 @@
+family_id: directional_proxy
+family_name: 方向性代理
+mechanism_hypothesis: 利用 vendor-derived TradeDir 代理买卖方向失衡，捕捉现有因子完全缺失的方向性维度。这个家族的所有因子都是 caveat-only，不做 signed-side truth 宣称。
+core_observables:
+  - TradeDir
+  - Price
+  - Volume
+  - buy_ratio
+  - volume_weighted_imbalance
+approved_factor_ids:
+  - trade_dir_buy_ratio_v1
+  - trade_dir_buy_ratio_change_v1
+  - trade_dir_imbalance_intensity_v1
+  - trade_dir_imbalance_intensity_change_v1
+rejected_factor_ids: []
+baseline_refs:
+  - structural_activity_proxy
+current_best_variant: pending_first_cycle
+known_failure_modes:
+  - TradeDir 本身只是 vendor 机械码映射，语义可靠性未经验证
+  - 买卖比在横截面上可能缺乏分散性
+  - vendor 定义可能跨年份不一致
+  - 如果 vendor 方向标记高度非对称，所有因子会系统偏移
+  - 大单事件会污染 notional 加权
+forbidden_semantic_assumptions:
+  - no_signed_side_truth
+  - no_aggressor_truth
+  - no_broker_identity_truth
+  - no_queue_semantics
+status: active
+notes: 这是整个研究工厂的第一个方向性家族。所有因子在 Gate A 只能拿到 allow_with_caveat，需要人工复核。核心价值在于即使 vendor proxy 只有微弱的方向信息量，也是现有因子池中完全不存在的维度。

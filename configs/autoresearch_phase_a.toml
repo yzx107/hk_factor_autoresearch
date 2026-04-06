@@ -87,3 +87,57 @@ factor = "close_vwap_churn_interaction_change"
 module = "close_vwap_churn_interaction"
 transform = "one_day_difference"
 card = "research_cards/examples/close_vwap_churn_interaction_2026.md"
+
+# --- Layer 1: Intraday Distribution (phase_a_core safe fields) ---
+
+[[candidates]]
+factor = "session_activity_shift"
+card = "research_cards/examples/session_activity_shift_2026.md"
+
+[[candidates]]
+factor = "session_activity_shift_change"
+module = "session_activity_shift"
+transform = "one_day_difference"
+card = "research_cards/examples/session_activity_shift_2026.md"
+
+[[candidates]]
+factor = "trade_size_concentration"
+card = "research_cards/examples/trade_size_concentration_2026.md"
+
+[[candidates]]
+factor = "trade_size_concentration_change"
+module = "trade_size_concentration"
+transform = "one_day_difference"
+card = "research_cards/examples/trade_size_concentration_2026.md"
+
+[[candidates]]
+factor = "trade_arrival_burstiness"
+card = "research_cards/examples/trade_arrival_burstiness_2026.md"
+
+[[candidates]]
+factor = "trade_arrival_burstiness_change"
+module = "trade_arrival_burstiness"
+transform = "one_day_difference"
+card = "research_cards/examples/trade_arrival_burstiness_2026.md"
+
+# --- Layer 2: Directional Proxy (phase_a_caveat_lane, requires manual review) ---
+
+[[candidates]]
+factor = "trade_dir_buy_ratio"
+card = "research_cards/examples/trade_dir_buy_ratio_2026.md"
+
+[[candidates]]
+factor = "trade_dir_buy_ratio_change"
+module = "trade_dir_buy_ratio"
+transform = "one_day_difference"
+card = "research_cards/examples/trade_dir_buy_ratio_2026.md"
+
+[[candidates]]
+factor = "trade_dir_imbalance_intensity"
+card = "research_cards/examples/trade_dir_imbalance_intensity_2026.md"
+
+[[candidates]]
+factor = "trade_dir_imbalance_intensity_change"
+module = "trade_dir_imbalance_intensity"
+transform = "one_day_difference"
+card = "research_cards/examples/trade_dir_imbalance_intensity_2026.md"
