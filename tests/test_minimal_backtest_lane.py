@@ -5,6 +5,7 @@ import unittest
 import polars as pl
 
 from backtest_engine.minimal_lane import run_minimal_backtest
+from harness.instrument_universe import UNIVERSE_FILTER_VERSION
 
 
 class MinimalBacktestLaneTest(unittest.TestCase):
@@ -51,7 +52,7 @@ class MinimalBacktestLaneTest(unittest.TestCase):
             target_instrument_universe="stock_research_candidate",
             source_instrument_universe="target_only",
             contains_cross_security_source=False,
-            universe_filter_version="stock_target_only_v1",
+            universe_filter_version=UNIVERSE_FILTER_VERSION,
             horizon="1d",
             top_fraction=0.25,
             cost_bps=10.0,

@@ -23,6 +23,8 @@ from diagnostics.redundancy import (
     derive_baseline_metrics,
     load_baseline_registry,
 )
+from evaluation.robustness import summarize_signs
+from harness.triage import derive_reject_reasons
 
 EXPERIMENT_LOG = ROOT / "registry" / "experiment_log.tsv"
 COMPARISON_LOG = ROOT / "registry" / "comparison_log.tsv"
@@ -52,6 +54,12 @@ def _latest_runs(entries: list[dict[str, str]]) -> dict[str, dict[str, str]]:
 
 
 def _load_json(path: Path) -> dict[str, Any]:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _load_optional_json(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {}
     return json.loads(path.read_text(encoding="utf-8"))
 
 
@@ -137,19 +145,51 @@ def _factor_row(entry: dict[str, str]) -> dict[str, Any]:
     run_dir = Path(entry["run_dir"])
     data_summary = _load_json(run_dir / "data_run_summary.json")
     diagnostics = _load_json(run_dir / "diagnostics_summary.json")
+    factor_profile = _load_optional_json(run_dir / "factor_profile.json") or dict(data_summary.get("factor_profile", {}))
+    family_profile = _load_optional_json(run_dir / "family_profile.json") or dict(data_summary.get("family_profile", {}))
     module_name = _resolve_factor_module_name(entry, data_summary)
     module = importlib.import_module(f"factor_defs.{module_name}")
+    family_id = str(
+        factor_profile.get("family_id")
+        or getattr(module, "FACTOR_FAMILY", "")
+    )
+    family_name = str(
+        factor_profile.get("family_name")
+        or family_profile.get("family_name")
+        or family_id
+    )
     return {
         "factor_name": entry["factor_name"],
         "module_name": module_name,
         "transform_name": data_summary.get("transform_name", "level"),
-        "factor_id": getattr(module, "FACTOR_ID", entry["factor_name"]),
-        "factor_family": getattr(module, "FACTOR_FAMILY", ""),
-        "mechanism": getattr(module, "MECHANISM", ""),
-        "transform_chain": list(getattr(module, "TRANSFORM_CHAIN", [])),
-        "forbidden_semantic_assumptions": list(
-            getattr(module, "FORBIDDEN_SEMANTIC_ASSUMPTIONS", [])
+        "factor_id": factor_profile.get("factor_id", getattr(module, "FACTOR_ID", entry["factor_name"])),
+        "factor_family": family_id,
+        "family_name": family_name,
+        "mechanism": factor_profile.get("mechanism_hypothesis", getattr(module, "MECHANISM", "")),
+        "transform_chain": list(
+            factor_profile.get("transform_chain", list(getattr(module, "TRANSFORM_CHAIN", [])))
         ),
+        "forbidden_semantic_assumptions": list(
+            factor_profile.get(
+                "forbidden_semantic_assumptions",
+                list(getattr(module, "FORBIDDEN_SEMANTIC_ASSUMPTIONS", [])),
+            )
+        ),
+        "target_instrument_universe": data_summary.get("target_instrument_universe", ""),
+        "source_instrument_universe": data_summary.get("source_instrument_universe", ""),
+        "contains_cross_security_source": bool(data_summary.get("contains_cross_security_source", False)),
+        "universe_filter_version": data_summary.get("universe_filter_version", ""),
+        "contains_caveat_fields": bool(factor_profile.get("contains_caveat_fields", False)),
+        "supports_default_lane": bool(factor_profile.get("supports_default_lane", True)),
+        "supports_extension_lane": bool(factor_profile.get("supports_extension_lane", False)),
+        "required_data_lane": factor_profile.get("required_data_lane", data_summary.get("data_source_mode", "")),
+        "required_year_grade": list(factor_profile.get("required_year_grade", [])),
+        "time_grade_requirement": factor_profile.get("time_grade_requirement", ""),
+        "baseline_comparators": list(factor_profile.get("baseline_comparators", [])),
+        "known_failure_modes": list(factor_profile.get("known_failure_modes", [])),
+        "requires_cross_security_mapping": bool(factor_profile.get("requires_cross_security_mapping", False)),
+        "factor_profile": factor_profile,
+        "family_profile": family_profile,
         "experiment_id": entry["experiment_id"],
         "table_name": data_summary["table_name"],
         "score_column": data_summary["score_column"],
@@ -199,6 +239,13 @@ def _pre_eval_row(entry: dict[str, str] | None) -> dict[str, Any] | None:
         legacy_name="mean_top_bottom_spread",
     )
     mean_coverage_ratio = _pre_eval_metric(summary, official_name="coverage_ratio", legacy_name="mean_coverage_ratio")
+    sign_summary = summarize_signs(
+        [
+            float(row["rank_ic"])
+            for row in summary.get("per_date", [])
+            if row.get("rank_ic") is not None
+        ]
+    )
     return {
         "pre_eval_id": entry["pre_eval_id"],
         "experiment_id": entry["experiment_id"],
@@ -219,6 +266,8 @@ def _pre_eval_row(entry: dict[str, str] | None) -> dict[str, Any] | None:
         "mi_significant_date_ratio": mi_significant_date_ratio,
         "mean_top_bottom_spread": mean_top_bottom_spread,
         "mean_coverage_ratio": mean_coverage_ratio,
+        "sign_consistency": sign_summary.sign_consistency,
+        "sign_switch_count": sign_summary.sign_switch_count,
         "regime_metadata": summary.get("regime_metadata", {}),
         "regime_slices": regime_slices,
         "entropy_regime_summary": entropy_summary["entries"],
@@ -308,58 +357,94 @@ def _derive_factor_board(
             comparison_rows=comparison_rows,
             baseline_factors=baseline_factors,
         )
-        board.append(
-            {
-                "factor_name": factor["factor_name"],
-                "module_name": factor["module_name"],
-                "transform_name": factor["transform_name"],
-                "factor_id": factor["factor_id"],
-                "factor_family": factor["factor_family"],
-                "baseline_group": baseline_group_for_factor(factor["factor_name"], baseline_registry),
-                "baseline_role": baseline_metrics["baseline_role"],
-                "baseline_peer_count": baseline_metrics["baseline_peer_count"],
-                "table_name": factor["table_name"],
-                "output_rows": factor["output_rows"],
-                "distinct_instruments": factor["distinct_instruments"],
-                "overall_score_mean": factor["overall_score_mean"],
-                "mean_abs_peer_corr": _average(peer_corrs),
-                "mean_top_overlap_count": _average(peer_overlaps),
-                "mean_abs_baseline_corr": baseline_metrics["mean_abs_baseline_corr"],
-                "mean_baseline_top_overlap": baseline_metrics["mean_baseline_top_overlap"],
-                "pre_eval_id": pre_eval.get("pre_eval_id"),
-                "label_name": pre_eval.get("label_name"),
-                "evaluated_dates": pre_eval.get("labeled_dates", []),
-                "skipped_dates": pre_eval.get("skipped_dates", []),
-                "joined_rows": pre_eval.get("joined_rows"),
-                "mean_rank_ic": pre_eval.get("mean_rank_ic"),
-                "mean_abs_rank_ic": pre_eval.get("mean_abs_rank_ic"),
-                "mean_mutual_info": pre_eval.get("mean_mutual_info"),
-                "mean_normalized_mutual_info": pre_eval.get("mean_normalized_mutual_info"),
-                "mean_nmi": pre_eval.get("mean_nmi"),
-                "mean_nmi_ic_gap": pre_eval.get("mean_nmi_ic_gap"),
-                "mean_mi_p_value": pre_eval.get("mean_mi_p_value"),
-                "mean_mi_excess_over_null": pre_eval.get("mean_mi_excess_over_null"),
-                "mi_significant_date_ratio": pre_eval.get("mi_significant_date_ratio"),
-                "mean_top_bottom_spread": pre_eval.get("mean_top_bottom_spread"),
-                "mean_coverage_ratio": pre_eval.get("mean_coverage_ratio"),
-                "incremental_hint": classify_incremental_hint(
-                    baseline_role=baseline_metrics["baseline_role"],
-                    mean_abs_rank_ic=pre_eval.get("mean_abs_rank_ic"),
-                    mean_abs_baseline_corr=baseline_metrics["mean_abs_baseline_corr"],
-                ),
-                "regime_slices": pre_eval.get("regime_slices", {}),
-                "regime_metadata": pre_eval.get("regime_metadata", {}),
-                "entropy_regime_summary": pre_eval.get("entropy_regime_summary", []),
-                "entropy_regime_dispersion": pre_eval.get("entropy_regime_dispersion"),
-                "entropy_regime_strongest_slice": pre_eval.get("entropy_regime_strongest_slice"),
-                "entropy_regime_weakest_slice": pre_eval.get("entropy_regime_weakest_slice"),
-                "mechanism": factor["mechanism"],
-                "transform_chain": factor["transform_chain"],
-                "forbidden_semantic_assumptions": factor["forbidden_semantic_assumptions"],
-                "dates": factor["dates"],
-                "notes": factor["notes"],
-            }
+        board_row = {
+            "factor_name": factor["factor_name"],
+            "module_name": factor["module_name"],
+            "transform_name": factor["transform_name"],
+            "factor_id": factor["factor_id"],
+            "factor_family": factor["factor_family"],
+            "family_name": factor["family_name"],
+            "factor_profile": factor["factor_profile"],
+            "family_profile": factor["family_profile"],
+            "baseline_group": baseline_group_for_factor(factor["factor_name"], baseline_registry),
+            "baseline_role": baseline_metrics["baseline_role"],
+            "baseline_peer_count": baseline_metrics["baseline_peer_count"],
+            "table_name": factor["table_name"],
+            "output_rows": factor["output_rows"],
+            "distinct_instruments": factor["distinct_instruments"],
+            "overall_score_mean": factor["overall_score_mean"],
+            "mean_abs_peer_corr": _average(peer_corrs),
+            "mean_top_overlap_count": _average(peer_overlaps),
+            "mean_abs_baseline_corr": baseline_metrics["mean_abs_baseline_corr"],
+            "baseline_redundancy_score": baseline_metrics["mean_abs_baseline_corr"],
+            "mean_baseline_top_overlap": baseline_metrics["mean_baseline_top_overlap"],
+            "pre_eval_id": pre_eval.get("pre_eval_id"),
+            "label_name": pre_eval.get("label_name"),
+            "evaluated_dates": pre_eval.get("labeled_dates", []),
+            "skipped_dates": pre_eval.get("skipped_dates", []),
+            "joined_rows": pre_eval.get("joined_rows"),
+            "mean_rank_ic": pre_eval.get("mean_rank_ic"),
+            "mean_abs_rank_ic": pre_eval.get("mean_abs_rank_ic"),
+            "mean_mutual_info": pre_eval.get("mean_mutual_info"),
+            "mean_normalized_mutual_info": pre_eval.get("mean_normalized_mutual_info"),
+            "mean_nmi": pre_eval.get("mean_nmi"),
+            "mean_nmi_ic_gap": pre_eval.get("mean_nmi_ic_gap"),
+            "mean_mi_p_value": pre_eval.get("mean_mi_p_value"),
+            "mean_mi_excess_over_null": pre_eval.get("mean_mi_excess_over_null"),
+            "mi_significant_date_ratio": pre_eval.get("mi_significant_date_ratio"),
+            "significance_proxy": pre_eval.get("mi_significant_date_ratio"),
+            "mean_top_bottom_spread": pre_eval.get("mean_top_bottom_spread"),
+            "mean_coverage_ratio": pre_eval.get("mean_coverage_ratio"),
+            "sign_consistency": pre_eval.get("sign_consistency"),
+            "sign_switch_count": pre_eval.get("sign_switch_count"),
+            "incremental_hint": classify_incremental_hint(
+                baseline_role=baseline_metrics["baseline_role"],
+                mean_abs_rank_ic=pre_eval.get("mean_abs_rank_ic"),
+                mean_abs_baseline_corr=baseline_metrics["mean_abs_baseline_corr"],
+            ),
+            "regime_slices": pre_eval.get("regime_slices", {}),
+            "regime_metadata": pre_eval.get("regime_metadata", {}),
+            "entropy_regime_summary": pre_eval.get("entropy_regime_summary", []),
+            "entropy_regime_dispersion": pre_eval.get("entropy_regime_dispersion"),
+            "entropy_regime_strongest_slice": pre_eval.get("entropy_regime_strongest_slice"),
+            "entropy_regime_weakest_slice": pre_eval.get("entropy_regime_weakest_slice"),
+            "mechanism": factor["mechanism"],
+            "transform_chain": factor["transform_chain"],
+            "forbidden_semantic_assumptions": factor["forbidden_semantic_assumptions"],
+            "dates": factor["dates"],
+            "notes": factor["notes"],
+            "target_instrument_universe": factor["target_instrument_universe"],
+            "source_instrument_universe": factor["source_instrument_universe"],
+            "contains_cross_security_source": factor["contains_cross_security_source"],
+            "universe_filter_version": factor["universe_filter_version"],
+            "contains_caveat_fields": factor["contains_caveat_fields"],
+            "supports_default_lane": factor["supports_default_lane"],
+            "supports_extension_lane": factor["supports_extension_lane"],
+            "required_data_lane": factor["required_data_lane"],
+            "required_year_grade": factor["required_year_grade"],
+            "time_grade_requirement": factor["time_grade_requirement"],
+            "baseline_comparators": factor["baseline_comparators"],
+            "known_failure_modes": factor["known_failure_modes"],
+            "requires_cross_security_mapping": factor["requires_cross_security_mapping"],
+            "family_allowed_input_lane": factor["family_profile"].get("allowed_input_lane", ""),
+            "family_current_best_variants": factor["family_profile"].get("current_best_variants", []),
+            "family_redundancy_pattern": factor["family_profile"].get("redundancy_pattern", ""),
+            "family_regime_sensitivity": factor["family_profile"].get("regime_sensitivity", []),
+            "family_expand_direction": factor["family_profile"].get("whether_to_expand_further", ""),
+            "universe_scope": (
+                f"target={factor['target_instrument_universe']}|source={factor['source_instrument_universe']}"
+            ),
+            "run_dir": factor["run_dir"],
+        }
+        primary, secondary, readiness, _ = derive_reject_reasons(
+            board_row,
+            factor_profile=factor["factor_profile"],
+            family_profile=factor["family_profile"],
         )
+        board_row["promotion_readiness"] = readiness
+        board_row["primary_reject_reason"] = primary
+        board_row["secondary_reject_reasons"] = secondary
+        board.append(board_row)
     return sorted(board, key=_score_sort_key)
 
 
@@ -391,6 +476,10 @@ def _render_markdown(payload: dict[str, Any]) -> str:
         factor_family = row.get("factor_family", "")
         baseline_role = row.get("baseline_role", "unknown")
         incremental_hint = row.get("incremental_hint", "unknown")
+        readiness = row.get("promotion_readiness", "unknown")
+        reject_reason = row.get("primary_reject_reason", "none")
+        universe_scope = row.get("universe_scope", "unknown")
+        caveat_text = "true" if row.get("contains_caveat_fields") else "false"
         mean_nmi = row.get("mean_nmi", row.get("mean_normalized_mutual_info"))
         mean_nmi_ic_gap = row.get("mean_nmi_ic_gap")
         mi_sig_ratio = row.get("mi_significant_date_ratio")
@@ -414,6 +503,10 @@ def _render_markdown(payload: dict[str, Any]) -> str:
             "- "
             f"`{row['factor_name']}` "
             f"family=`{factor_family}` "
+            f"readiness=`{readiness}` "
+            f"reason=`{reject_reason}` "
+            f"universe=`{universe_scope}` "
+            f"contains_caveat_fields=`{caveat_text}` "
             f"baseline_role=`{baseline_role}` "
             f"table=`{row['table_name']}` "
             f"rows=`{row['output_rows']}` "
@@ -444,7 +537,10 @@ def _render_markdown(payload: dict[str, Any]) -> str:
             f"mean_abs_rank_ic=`{row['mean_abs_rank_ic']:.4f}` "
             f"mean_nmi=`{mean_nmi_text}` "
             f"mean_top_bottom_spread=`{row['mean_top_bottom_spread']:.4f}` "
-            f"incremental_hint=`{incremental_hint}`"
+            f"incremental_hint=`{incremental_hint}` "
+            f"promotion_readiness=`{row.get('promotion_readiness', 'unknown')}` "
+            f"primary_reject_reason=`{row.get('primary_reject_reason', 'none')}` "
+            f"baseline_redundancy_score=`{row.get('baseline_redundancy_score')}`"
         )
         if row.get("entropy_regime_dispersion") is not None:
             note += f" entropy_dispersion=`{row['entropy_regime_dispersion']:.4f}`"
@@ -477,6 +573,20 @@ def _render_markdown(payload: dict[str, Any]) -> str:
         lines.append("")
         for item in payload["missing_comparisons"]:
             lines.append(f"- `{item}`")
+    lines.append("")
+    lines.append("## Triage")
+    lines.append("")
+    for row in payload["factor_board"]:
+        lines.append(
+            "- "
+            f"`{row['factor_name']}` "
+            f"family=`{row.get('family_name', row.get('factor_family', ''))}` "
+            f"promotion_readiness=`{row.get('promotion_readiness', 'unknown')}` "
+            f"primary_reject_reason=`{row.get('primary_reject_reason', 'none')}` "
+            f"baseline_redundancy_score=`{row.get('baseline_redundancy_score')}` "
+            f"universe=`{row.get('universe_scope', 'unknown')}` "
+            f"contains_caveat_fields=`{row.get('contains_caveat_fields', False)}`"
+        )
     lines.append("")
     lines.append("## Regime Notes")
     lines.append("")

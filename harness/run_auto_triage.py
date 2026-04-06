@@ -20,6 +20,7 @@ if str(ROOT) not in sys.path:
 
 from backtest_engine.minimal_lane import run_minimal_backtest
 from factor_families.profile import build_family_profile
+from harness.instrument_universe import UNIVERSE_FILTER_VERSION
 from harness.triage import (
     append_family_performance_summary,
     append_reject_reason_log,
@@ -65,7 +66,7 @@ def _fallback_factor_profile(row: dict[str, Any], data_summary: dict[str, Any], 
     target_scope = str(data_summary.get("target_instrument_universe", "stock_research_candidate"))
     source_scope = str(data_summary.get("source_instrument_universe", "target_only"))
     contains_cross_security = bool(data_summary.get("contains_cross_security_source", False))
-    universe_filter_version = str(data_summary.get("universe_filter_version", ""))
+    universe_filter_version = str(data_summary.get("universe_filter_version", UNIVERSE_FILTER_VERSION))
     factor_family = str(family_profile.get("family_name") or row.get("factor_family", ""))
     mechanism = str(data_summary.get("mechanism", row.get("mechanism", "")))
     dates = list(data_summary.get("dates", []))
@@ -283,6 +284,7 @@ def run_auto_triage(
         "rejected_candidates": rejected_candidates,
         "reject_reason_histogram": dict(reason_histogram),
         "family_summaries": family_summaries,
+        "family_level_summary": family_summaries,
         "backtests": backtest_payloads,
         "recommended_next_batch_directions": _recommendations(reason_histogram, len(triaged_rows)),
     }

@@ -72,6 +72,14 @@ python3 harness/scoreboard.py \
   --notes "safe candidate board"
 ```
 
+固定 auto triage：
+
+```bash
+python3 harness/run_auto_triage.py \
+  --scoreboard-summary runs/<scoreboard_id>/scoreboard_summary.json \
+  --notes "daily triage"
+```
+
 固定 pre-eval：
 
 ```bash
@@ -101,6 +109,23 @@ python3 harness/autoresearch_cycle.py \
   --notes "daily cycle"
 ```
 
+如果要在 cycle 里对 shortlist 顺手跑最小正式 backtest：
+
+```bash
+python3 harness/autoresearch_cycle.py \
+  --notes "daily cycle" \
+  --labels-path cache/forward_labels/2026_forward_labels.parquet
+```
+
+对单个 shortlist 跑最小正式 backtest：
+
+```bash
+python3 harness/run_minimal_backtest.py \
+  --run-dir runs/<experiment_id> \
+  --labels-path cache/forward_labels/2026_forward_labels.parquet \
+  --notes "shortlist stress test"
+```
+
 最小 family batch screen：
 
 ```bash
@@ -114,6 +139,13 @@ python3 harness/autoresearch_cycle.py \
 - `scoreboard_report.md`
 
 scoreboard / cycle 默认会把 `mean_nmi`、`entropy_regime_dispersion` 和 `entropy_quantile` 切片摘要带出来做展示与比较。
+现在 `scoreboard` 还会稳定输出：
+- `promotion_readiness`
+- `primary_reject_reason`
+- `baseline_redundancy_score`
+- `universe_scope`
+- `contains_caveat_fields`
+- `family_name`
 
 每个 pre-eval 会写出：
 - `pre_eval_summary.json`
@@ -156,6 +188,13 @@ python3 harness/find_lead_factors.py --metric rank_ic
 每个 cycle 会写出：
 - `cycle_summary.json`
 - `cycle_report.md`
+
+cycle 现在会额外带出：
+- `shortlisted_candidates`
+- `rejected_candidates`
+- `reject_reason_histogram`
+- `family_level_summary`
+- `recommended_next_batch_directions`
 
 为什么要有这一层：
 - 保证实验设置可比较

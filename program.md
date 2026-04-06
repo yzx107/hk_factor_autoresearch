@@ -32,6 +32,8 @@
 - `phase_a_core` / `phase_a_caveat_lane` 只定义字段输入边界，不自动定义“纯股票研究池”
 - 本 repo 的正式 research card 当前固定要求 `target_instrument_universe = "stock_research_candidate"`
 - 本 repo 的正式 research card 当前固定要求 `source_instrument_universe = "target_only"`
+- 本 repo 的正式 research card 当前固定要求 `contains_cross_security_source = false`
+- 本 repo 的正式 research card 当前固定要求 `universe_filter_version = "stock_research_candidate_filter_v1"`
 - 若研究目标限定为股票候选池，必须显式引用上游 `instrument_profile` sidecar / `stock_research_candidate`
 - `stock_research_candidate` 仍不是 pure common-equity proof
 - 非股票证券只能作为未来显式 source lane 的扩展研究输入，不能回流成默认 mixed target universe
@@ -49,6 +51,7 @@
 - 新增或修改 `factor_specs/`
 - 新增或修改 `factor_defs/`、`transforms/`、`combos/`
 - 维护 `factor_contracts/`、`factor_families/` 和 family registry
+- 新增或修改 `harness/run_auto_triage.py`、`harness/run_minimal_backtest.py` 这类下游评估 harness
 - 在 `configs/` 下添加派生 run 配置，但不能改冻结 baseline
 - 追加 experiment rows 和 lineage entries
 

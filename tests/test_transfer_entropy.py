@@ -61,6 +61,9 @@ class TransferEntropyTest(unittest.TestCase):
         self.assertIn("policy_trace", summary)
         self.assertEqual(summary["policy_trace"]["source_layer"], "autoresearch_pre_eval_summary")
         self.assertFalse(summary["policy_trace"]["formal_consumption_eligible"])
+        self.assertTrue(summary["exploratory_only"])
+        self.assertEqual(summary["mapping_rule"], "not_applicable_for_factor_metric_series")
+        self.assertEqual(summary["lag_grid"], [1])
 
     def test_transfer_entropy_permutation_test_returns_p_value(self) -> None:
         source = [0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0]

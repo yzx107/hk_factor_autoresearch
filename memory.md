@@ -10,6 +10,14 @@
 ## Recent Completed Work
 
 - Phase 1 information-theory support is already merged into `main`.
+- The harness now has a stable auto-triage layer:
+  - `harness/scoreboard.py` emits `promotion_readiness`, `primary_reject_reason`, `baseline_redundancy_score`, `universe_scope`, and caveat visibility.
+  - `harness/run_auto_triage.py` emits shortlist / reject buckets, reject histograms, family-level summaries, and next-batch directions.
+  - `harness/autoresearch_cycle.py` now includes triage output inside each cycle artifact.
+- A minimal formal backtest lane now exists:
+  - `backtest_engine/minimal_lane.py`
+  - `harness/run_minimal_backtest.py`
+  - this lane is for shortlist stress tests only, not for production trading claims.
 - `pre-eval` now includes canonical mutual information outputs:
   - `aggregate_metrics.mi`
   - `aggregate_metrics.nmi`
@@ -49,6 +57,7 @@
   - `evaluation/transfer_entropy.py`
   - `harness/find_lead_factors.py`
 - The exploratory TE summary now records permutation-based significance and a policy-trace block.
+- The TE summary also records explicit exploratory metadata such as universe scope, lag grid, discretization, and mapping rule.
 - It is not part of the fixed Phase 1 pre-eval contract.
 - It is not part of the default Gate B decision policy.
 - Do not conflate it with `market_turnover_entropy` or `entropy_quantile`.

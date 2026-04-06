@@ -5,6 +5,7 @@ import tempfile
 import unittest
 
 from gatekeeper.gate_a_data import evaluate_card, load_research_card
+from harness.instrument_universe import UNIVERSE_FILTER_VERSION
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -87,6 +88,30 @@ class GateASmokeTest(unittest.TestCase):
             result = evaluate_card(path)
         self.assertEqual(result.decision, "fail")
         self.assertTrue(any("source_instrument_universe" in reason for reason in result.reasons))
+
+    def test_missing_contains_cross_security_source_fails(self) -> None:
+        template = (ROOT / "research_cards/examples/structural_activity_proxy_2026.md").read_text(encoding="utf-8")
+        text = template.replace('contains_cross_security_source = false\n', "", 1)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "missing_contains_cross_security_source.md"
+            path.write_text(text, encoding="utf-8")
+            result = evaluate_card(path)
+        self.assertEqual(result.decision, "fail")
+        self.assertTrue(any("contains_cross_security_source" in reason for reason in result.reasons))
+
+    def test_wrong_universe_filter_version_fails(self) -> None:
+        template = (ROOT / "research_cards/examples/structural_activity_proxy_2026.md").read_text(encoding="utf-8")
+        text = template.replace(
+            f'universe_filter_version = "{UNIVERSE_FILTER_VERSION}"',
+            'universe_filter_version = "wrong_version"',
+            1,
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "wrong_universe_filter_version.md"
+            path.write_text(text, encoding="utf-8")
+            result = evaluate_card(path)
+        self.assertEqual(result.decision, "fail")
+        self.assertTrue(any("universe filter version" in reason.lower() for reason in result.reasons))
 
     def test_legacy_instrument_universe_alias_normalizes_to_target_field(self) -> None:
         template = (ROOT / "research_cards/examples/structural_activity_proxy_2026.md").read_text(encoding="utf-8")

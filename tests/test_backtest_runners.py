@@ -10,6 +10,7 @@ import polars as pl
 import harness.run_auto_triage as run_auto_triage_module
 import harness.run_minimal_backtest as run_minimal_backtest_module
 import harness.triage as triage_module
+from harness.instrument_universe import UNIVERSE_FILTER_VERSION
 
 
 class BacktestRunnerTest(unittest.TestCase):
@@ -66,7 +67,7 @@ class BacktestRunnerTest(unittest.TestCase):
                         "target_instrument_universe": "stock_research_candidate",
                         "source_instrument_universe": "target_only",
                         "contains_cross_security_source": False,
-                        "universe_filter_version": "stock_target_only_v1",
+                        "universe_filter_version": UNIVERSE_FILTER_VERSION,
                         "factor_profile": {"family_name": "demo_family"},
                         "family_profile": {"family_name": "demo_family"},
                     },
@@ -112,7 +113,7 @@ class BacktestRunnerTest(unittest.TestCase):
                         "target_instrument_universe": "stock_research_candidate",
                         "source_instrument_universe": "target_only",
                         "contains_cross_security_source": False,
-                        "universe_filter_version": "stock_target_only_v1",
+                        "universe_filter_version": UNIVERSE_FILTER_VERSION,
                         "factor_profile": {"family_name": "demo_family"},
                         "family_profile": {"family_name": "demo_family"},
                         "dates": ["2026-01-02", "2026-01-03"],
@@ -130,7 +131,7 @@ class BacktestRunnerTest(unittest.TestCase):
                         "target_universe_scope": "stock_research_candidate",
                         "source_universe_scope": "target_only",
                         "contains_cross_security_source": False,
-                        "universe_filter_version": "stock_target_only_v1",
+                        "universe_filter_version": UNIVERSE_FILTER_VERSION,
                         "contains_caveat_fields": False,
                     },
                     indent=2,
@@ -197,6 +198,7 @@ class BacktestRunnerTest(unittest.TestCase):
             self.assertEqual(len(payload["shortlisted_candidates"]), 1)
             self.assertEqual(payload["rejected_candidates"], [])
             self.assertTrue(payload["recommended_next_batch_directions"])
+            self.assertTrue(payload["family_level_summary"])
 
 
 if __name__ == "__main__":

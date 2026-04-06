@@ -17,3 +17,5 @@ tmp/
 *.parquet
 *.feather
 .DS_Store
+registry/reject_reason_log.tsv
+registry/family_performance_summary.tsv

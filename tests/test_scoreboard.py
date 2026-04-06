@@ -52,6 +52,10 @@ class ScoreboardTest(unittest.TestCase):
                         "mean_normalized_mutual_info": 999.0,
                         "mean_top_bottom_spread": 999.0,
                         "mean_coverage_ratio": 999.0,
+                        "per_date": [
+                            {"date": "2026-03-13", "rank_ic": 0.02},
+                            {"date": "2026-03-14", "rank_ic": 0.01},
+                        ],
                         "regime_metadata": {"label_mode": "descriptive_only"},
                         "regime_slices": {
                             "entropy_quantile": [
@@ -78,6 +82,7 @@ class ScoreboardTest(unittest.TestCase):
             self.assertAlmostEqual(row["mi_significant_date_ratio"], 1.0)
             self.assertAlmostEqual(row["entropy_regime_dispersion"], 0.08)
             self.assertEqual(row["entropy_regime_strongest_slice"], "q1_low_entropy")
+            self.assertAlmostEqual(row["sign_consistency"], 1.0)
 
 
 if __name__ == "__main__":

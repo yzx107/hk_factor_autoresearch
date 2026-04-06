@@ -15,6 +15,10 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from evaluation.transfer_entropy import transfer_entropy_permutation_test, transfer_entropy_summary
+from harness.instrument_universe import (
+    DEFAULT_SOURCE_INSTRUMENT_UNIVERSE,
+    DEFAULT_TARGET_INSTRUMENT_UNIVERSE,
+)
 
 PRE_EVAL_LOG = ROOT / "registry" / "pre_eval_log.tsv"
 RUN_ROOT = ROOT / "runs"
@@ -141,6 +145,7 @@ def build_lead_factor_summary(
     generated_at: str = "",
 ) -> dict[str, Any]:
     factors = sorted(series_by_factor)
+    discretization = "adaptive_equal_frequency_bins(min=2,max=8)" if bins is None else f"fixed_equal_frequency_bins({bins})"
     matrix: dict[str, dict[str, float | None]] = {factor: {} for factor in factors}
     edges: list[dict[str, Any]] = []
     required_overlap = max(min_overlap, lag + 2)
@@ -213,10 +218,17 @@ def build_lead_factor_summary(
     return {
         "metric": metric,
         "lag": lag,
+        "lag_grid": [lag],
         "bins": bins,
+        "discretization": discretization,
         "permutations": permutations,
         "significance_threshold": significance_threshold,
         "min_overlap": required_overlap,
+        "exploratory_only": True,
+        "target_instrument_universe": DEFAULT_TARGET_INSTRUMENT_UNIVERSE,
+        "source_instrument_universe": DEFAULT_SOURCE_INSTRUMENT_UNIVERSE,
+        "contains_cross_security_source": False,
+        "mapping_rule": "not_applicable_for_factor_metric_series",
         "factors": factors,
         "matrix": matrix,
         "ranked_edges": ranked_edges,

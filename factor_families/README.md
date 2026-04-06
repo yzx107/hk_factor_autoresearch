@@ -11,6 +11,21 @@ Phase A 最小要求：
 - `factor_family` 应当能在本目录里找到对应 yaml
 - family yaml 不得越过上游 admissibility 语义边界
 
+当前 family yaml 至少要能表达：
+- `family_id`
+- `family_name`
+- `mechanism_hypothesis`
+- `allowed_input_lane`
+- `common_variants`
+- `current_best_variants`
+- `known_failure_patterns`
+- `redundancy_pattern`
+- `regime_sensitivity`
+- `extension_lane_eligibility`
+- `whether_to_expand_further`
+
+这些字段会被 `scoreboard`、`run_auto_triage.py`、`autoresearch_cycle.py` 和 family-level registry feedback 直接消费。
+
 当前已落地的 family：
 - `activity_pressure.yaml`
 - `trade_notional_composition.yaml`

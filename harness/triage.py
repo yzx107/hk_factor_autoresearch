@@ -9,6 +9,8 @@ from math import fsum
 from pathlib import Path
 from typing import Any
 
+from harness.instrument_universe import UNIVERSE_FILTER_VERSION
+
 ROOT = Path(__file__).resolve().parents[1]
 REJECT_REASON_LOG = ROOT / "registry" / "reject_reason_log.tsv"
 FAMILY_PERFORMANCE_SUMMARY = ROOT / "registry" / "family_performance_summary.tsv"
@@ -138,7 +140,7 @@ def derive_reject_reasons(
         reasons.append("universe_mismatch")
     if contains_caveat or contains_cross_security or source_scope != "target_only":
         reasons.append("caveat_dependence_too_high")
-    if universe_filter_version and universe_filter_version != "stock_target_only_v1":
+    if universe_filter_version and universe_filter_version != UNIVERSE_FILTER_VERSION:
         reasons.append("universe_mismatch")
 
     coverage = _metric(row, "mean_coverage_ratio")
@@ -212,6 +214,8 @@ def derive_reject_reasons(
     snapshot["target_instrument_universe"] = target_scope
     snapshot["source_instrument_universe"] = source_scope
     snapshot["universe_filter_version"] = universe_filter_version
+    snapshot["baseline_redundancy_score"] = snapshot.get("mean_abs_baseline_corr")
+    snapshot["significance_proxy"] = snapshot.get("mi_significant_date_ratio")
     snapshot["promotion_readiness"] = readiness
     snapshot["primary_reject_reason"] = primary
     snapshot["secondary_reject_reasons"] = secondary

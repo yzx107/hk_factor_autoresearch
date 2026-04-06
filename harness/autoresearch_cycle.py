@@ -18,6 +18,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from harness.compare_factors import COMPARISON_LOG, run_factor_comparison
+from harness.run_auto_triage import run_auto_triage
 from harness.run_pre_eval import PRE_EVAL_LOG, run_pre_eval_for_factor
 from harness.run_verified_factor import run_verified_factor_experiment
 from harness.scoreboard import build_scoreboard
@@ -180,45 +181,67 @@ def _recommendation(row: dict[str, Any], policy: SelectionPolicy) -> tuple[str, 
 
 def _render_report(payload: dict[str, Any]) -> str:
     lines: list[str] = []
+    triage = payload.get("triage", {})
     lines.append("# Autoresearch Cycle")
     lines.append("")
     lines.append(f"- cycle_id: `{payload['cycle_id']}`")
     lines.append(f"- config_version: `{payload['config_version']}`")
     lines.append(f"- scoreboard_id: `{payload['scoreboard']['scoreboard_id']}`")
+    if triage:
+        lines.append(f"- triage_id: `{triage['triage_id']}`")
     lines.append(f"- factor_count: `{payload['factor_count']}`")
     lines.append("")
-    lines.append("## Candidate Actions")
+    lines.append("## Triage")
     lines.append("")
-    for item in payload["recommendations"]:
-        mean_nmi = item.get("mean_nmi", item.get("mean_normalized_mutual_info"))
-        entropy_text = (
-            ""
-            if item.get("entropy_regime_dispersion") is None
-            else f" entropy_dispersion=`{item['entropy_regime_dispersion']}`"
-        )
+    for item in triage.get("shortlisted_candidates", []):
         lines.append(
             "- "
-            f"`{item['factor_name']}` action=`{item['action']}` "
-            f"mean_rank_ic=`{item['mean_rank_ic']}` "
-            f"mean_abs_rank_ic=`{item['mean_abs_rank_ic']}` "
-            f"mean_nmi=`{mean_nmi}` "
-            f"peer_corr=`{item['mean_abs_peer_corr']}`"
-            f"{entropy_text}"
+            f"`{item['factor_name']}` shortlist "
+            f"family=`{item['family_name']}` "
+            f"reason=`{item['primary_reject_reason']}` "
+            f"readiness=`{item['promotion_readiness']}`"
         )
-    lines.append("")
-    lines.append("## Entropy Regime Notes")
-    lines.append("")
-    for item in payload["recommendations"]:
-        if item.get("entropy_regime_dispersion") is None:
-            lines.append(f"- `{item['factor_name']}` entropy_regime=`insufficient_history`")
-            continue
+    for item in triage.get("watch_candidates", []):
         lines.append(
             "- "
             f"`{item['factor_name']}` "
-            f"strongest_entropy_slice=`{item.get('entropy_regime_strongest_slice', 'unknown')}` "
-            f"weakest_entropy_slice=`{item.get('entropy_regime_weakest_slice', 'unknown')}` "
-            f"entropy_dispersion=`{item['entropy_regime_dispersion']}`"
+            f"watch "
+            f"family=`{item['family_name']}` "
+            f"reason=`{item['primary_reject_reason']}`"
         )
+    for item in triage.get("rejected_candidates", []):
+        lines.append(
+            "- "
+            f"`{item['factor_name']}` "
+            f"reject "
+            f"family=`{item['family_name']}` "
+            f"reason=`{item['primary_reject_reason']}`"
+        )
+    lines.append("")
+    lines.append("## Reject Histogram")
+    lines.append("")
+    for reason, count in sorted(
+        triage.get("reject_reason_histogram", {}).items(),
+        key=lambda item: item[1],
+        reverse=True,
+    ):
+        lines.append(f"- `{reason}`: `{count}`")
+    lines.append("")
+    lines.append("## Family Summary")
+    lines.append("")
+    for item in triage.get("family_level_summary", []):
+        lines.append(
+            "- "
+            f"`{item['family_name']}` "
+            f"candidate_count=`{item['candidate_count']}` "
+            f"shortlist_rate=`{item['shortlist_rate']}` "
+            f"common_failure_modes=`{item['common_failure_modes']}`"
+        )
+    lines.append("")
+    lines.append("## Next Batch")
+    lines.append("")
+    for item in triage.get("recommended_next_batch_directions", []):
+        lines.append(f"- {item}")
     lines.append("")
     lines.append("## Inventory")
     lines.append("")
@@ -276,6 +299,7 @@ def run_autoresearch_cycle(
     owner: str = "",
     notes: str = "",
     reuse_latest: bool = True,
+    labels_path: Path | None = None,
 ) -> tuple[str, dict[str, Any], Path]:
     config = load_cycle_config(config_path)
     resolved_owner = owner or config.owner
@@ -357,6 +381,11 @@ def run_autoresearch_cycle(
         [candidate.factor_name for candidate in config.candidates],
         notes=f"autoresearch cycle {config.version}",
     )
+    triage_id, triage_payload, triage_path = run_auto_triage(
+        scoreboard_summary_path=scoreboard_path,
+        labels_path=labels_path,
+        notes=f"autoresearch cycle {config.version}",
+    )
     recommendations: list[dict[str, Any]] = []
     for row in scoreboard_payload["factor_board"]:
         action, reason = _recommendation(row, config.selection)
@@ -383,7 +412,11 @@ def run_autoresearch_cycle(
     run_dir.mkdir(parents=True, exist_ok=True)
     summary_path = run_dir / "cycle_summary.json"
     report_path = run_dir / "cycle_report.md"
-    best = recommendations[0] if recommendations else {"factor_name": "none", "action": "none"}
+    best = (
+        triage_payload["shortlisted_candidates"][0]
+        if triage_payload.get("shortlisted_candidates")
+        else recommendations[0] if recommendations else {"factor_name": "none", "action": "none"}
+    )
     payload = {
         "cycle_id": cycle_id,
         "created_at": created_at,
@@ -400,6 +433,11 @@ def run_autoresearch_cycle(
             "summary_path": str(scoreboard_path),
             "factor_board": scoreboard_payload["factor_board"],
         },
+        "triage": {
+            "triage_id": triage_id,
+            "summary_path": str(triage_path),
+            **triage_payload,
+        },
         "recommendations": recommendations,
     }
     summary_path.write_text(json.dumps(payload, indent=2, default=str), encoding="utf-8")
@@ -414,7 +452,7 @@ def run_autoresearch_cycle(
         comparison_count=len(comparisons),
         scoreboard_id=scoreboard_id,
         best_factor=best["factor_name"],
-        best_action=best["action"],
+        best_action=best.get("action", best.get("promotion_readiness", "none")),
         summary_path=summary_path,
         notes=notes or f"autoresearch cycle {config.version}",
     )
@@ -426,6 +464,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--config", default=str(DEFAULT_CONFIG), help="Cycle config TOML path.")
     parser.add_argument("--owner", default="", help="Optional owner override.")
     parser.add_argument("--notes", default="", help="Short cycle note.")
+    parser.add_argument("--labels-path", default="", help="Optional labels parquet used by minimal backtest triage.")
     parser.add_argument("--no-reuse", action="store_true", help="Force fresh runs instead of reusing latest artifacts.")
     return parser.parse_args()
 
@@ -437,6 +476,7 @@ def main() -> int:
         owner=args.owner,
         notes=args.notes,
         reuse_latest=not args.no_reuse,
+        labels_path=Path(args.labels_path) if args.labels_path else None,
     )
     best = payload["recommendations"][0] if payload["recommendations"] else {"factor_name": "none", "action": "none"}
     print(

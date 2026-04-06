@@ -18,6 +18,7 @@ class ScoreboardReportTest(unittest.TestCase):
                 {
                     "factor_name": "f1",
                     "factor_family": "activity_pressure",
+                    "family_name": "activity_pressure",
                     "baseline_role": "challenger",
                     "table_name": "verified_trades",
                     "output_rows": 10,
@@ -34,6 +35,11 @@ class ScoreboardReportTest(unittest.TestCase):
                     "mean_top_bottom_spread": 0.01,
                     "mean_coverage_ratio": 1.0,
                     "entropy_regime_dispersion": 0.08,
+                    "promotion_readiness": "ready",
+                    "primary_reject_reason": "none",
+                    "baseline_redundancy_score": 0.25,
+                    "universe_scope": "target=stock_research_candidate|source=target_only",
+                    "contains_caveat_fields": False,
                     "evaluated_dates": ["2026-03-13"],
                     "joined_rows": 10,
                     "incremental_hint": "potential_incremental",
@@ -64,6 +70,8 @@ class ScoreboardReportTest(unittest.TestCase):
         self.assertIn("year_grade=`fine_ok:0.1200`", text)
         self.assertIn("entropy_quantile=`q1_low_entropy:ic=0.1200|nmi=0.0300", text)
         self.assertIn("label_mode=`descriptive_only`", text)
+        self.assertIn("promotion_readiness=`ready`", text)
+        self.assertIn("primary_reject_reason=`none`", text)
 
 
 if __name__ == "__main__":

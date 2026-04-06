@@ -7,6 +7,7 @@ import unittest
 
 from factor_contracts.profile import build_factor_profile
 from factor_families.profile import build_family_profile
+from harness.instrument_universe import UNIVERSE_FILTER_VERSION
 
 
 class ProfileLayerTest(unittest.TestCase):
@@ -38,7 +39,7 @@ class ProfileLayerTest(unittest.TestCase):
             target_instrument_universe="stock_research_candidate",
             source_instrument_universe="target_only",
             contains_cross_security_source=False,
-            universe_filter_version="stock_target_only_v1",
+            universe_filter_version=UNIVERSE_FILTER_VERSION,
             label_definition="forward_return_1d_close_like",
             family_registry_path="/tmp/families.tsv",
         ).as_dict()
@@ -54,6 +55,8 @@ class ProfileLayerTest(unittest.TestCase):
         self.assertEqual(profile["required_year_grade"], ["coarse_only", "fine_ok"])
         self.assertEqual(profile["baseline_comparators"], ["baseline_a"])
         self.assertEqual(profile["known_failure_modes"], ["low_coverage"])
+        self.assertEqual(profile["universe_filter_version"], UNIVERSE_FILTER_VERSION)
+        self.assertEqual(profile["family_expand_direction"], "")
 
     def test_build_family_profile_normalizes_family_yaml(self) -> None:
         with TemporaryDirectory() as tmpdir:
@@ -61,11 +64,15 @@ class ProfileLayerTest(unittest.TestCase):
                 "family_id": "demo_family",
                 "family_name": "demo_family",
                 "mechanism_hypothesis": "demo mechanism",
+                "allowed_input_lane": "phase_a_core",
                 "current_members": ["variant_a", "variant_b"],
                 "current_best_variant": ["variant_b"],
                 "known_failure_modes": ["weak_ic", "high_redundancy"],
+                "redundancy_pattern": "demo redundancy",
                 "baseline_refs": ["baseline_a"],
                 "expected_regime": "high_entropy",
+                "extension_lane_eligibility": "default_lane_only",
+                "whether_to_expand_further": "monitor",
                 "status": "active",
                 "notes": "demo",
             }
@@ -83,6 +90,8 @@ class ProfileLayerTest(unittest.TestCase):
         self.assertEqual(profile["baseline_refs"], ["baseline_a"])
         self.assertEqual(profile["regime_sensitivity"], ["high_entropy"])
         self.assertEqual(profile["extension_lane_eligibility"], "default_lane_only")
+        self.assertEqual(profile["allowed_input_lane"], "phase_a_core")
+        self.assertEqual(profile["redundancy_pattern"], "demo redundancy")
 
 
 if __name__ == "__main__":

@@ -34,6 +34,8 @@
 - `harness/run_phase_a.py`：最小 autoresearch 风格实验入口
 - `harness/generate_factor_batch.py`：从 `factor_specs/*.toml` 批量生成候选
 - `harness/run_pre_eval.py`：固定 forward-return pre-eval
+- `harness/run_auto_triage.py`：固定 reject reason / promotion readiness triage
+- `harness/run_minimal_backtest.py`：shortlist 的最小正式 backtest lane
 - `harness/run_gate_b.py`：最小正式 Gate B statistical validity runner
 - `harness/autoresearch_cycle.py`：端到端 cycle runner
 - `registry/`：append-only 实验留痕骨架
@@ -86,6 +88,12 @@
 - 当前不应把默认研究对象写成 `fully verified equity universe`
 - `stock_research_candidate` 只是保守候选池，仍可能残留低位非股票例外
 - 非股票证券如果未来要进入研究，只能作为显式 source lane 输入，用于 cross-security dependence / transfer-entropy 扩展研究，不进入默认 scoreboard 主线
+
+当前自动 triage 主线：
+- `scoreboard` 会稳定输出 `promotion_readiness`、`primary_reject_reason`、`baseline_redundancy_score`、`universe_scope`
+- `run_auto_triage.py` 会输出 `shortlisted_candidates`、`rejected_candidates`、`reject_reason_histogram`、`family_level_summary`
+- `registry/reject_reason_log.tsv` 与 `registry/family_performance_summary.tsv` 是 append-only triage feedback logs，但默认不纳入 git 跟踪
+- `minimal backtest lane` 只用于 shortlist 的统一低自由度压力测试，不是假装成 production backtester
 
 最小 smoke：
 
@@ -143,6 +151,13 @@ python3 harness/scoreboard.py \
   --factors structural_activity_proxy avg_trade_notional_bias
 ```
 
+对一个 scoreboard 直接跑固定 triage：
+
+```bash
+python3 harness/run_auto_triage.py \
+  --scoreboard-summary runs/<scoreboard_id>/scoreboard_summary.json
+```
+
 对最新因子实验跑固定 pre-eval：
 
 ```bash
@@ -180,6 +195,21 @@ python3 harness/export_forward_labels.py --year 2026
 python3 harness/autoresearch_cycle.py
 ```
 
+如果要在 cycle 里顺手给 shortlist 跑最小正式 backtest，可以显式提供共享 labels：
+
+```bash
+python3 harness/autoresearch_cycle.py \
+  --labels-path cache/forward_labels/2026_forward_labels.parquet
+```
+
+对单个 shortlist 跑最小正式 backtest：
+
+```bash
+python3 harness/run_minimal_backtest.py \
+  --run-dir runs/<experiment_id> \
+  --labels-path cache/forward_labels/2026_forward_labels.parquet
+```
+
 运行一轮 order-trade interaction family 的最小 batch screen：
 
 ```bash
@@ -203,6 +233,11 @@ runs/<scoreboard_id>/scoreboard_report.md
 
 其中默认会展示：
 - `mean_nmi`
+- `promotion_readiness`
+- `primary_reject_reason`
+- `baseline_redundancy_score`
+- `universe_scope`
+- `contains_caveat_fields`
 - `entropy_regime_dispersion`
 - `entropy_quantile` 切片下的 `mean_abs_rank_ic` / `mean_nmi`
 
