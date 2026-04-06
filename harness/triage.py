@@ -238,8 +238,9 @@ def append_reject_reason_log(
     scoreboard_id: str,
     backtest_id: str,
     notes: str,
-    path: Path = REJECT_REASON_LOG,
+    path: Path | None = None,
 ) -> None:
+    path = path or REJECT_REASON_LOG
     header = [
         "triage_id",
         "created_at",
@@ -291,8 +292,9 @@ def append_family_performance_summary(
     family_name: str,
     candidate_rows: list[dict[str, Any]],
     notes: str,
-    path: Path = FAMILY_PERFORMANCE_SUMMARY,
+    path: Path | None = None,
 ) -> None:
+    path = path or FAMILY_PERFORMANCE_SUMMARY
     header = [
         "triage_id",
         "created_at",
@@ -348,4 +350,3 @@ def append_family_performance_summary(
                 notes,
             ]
         )
-

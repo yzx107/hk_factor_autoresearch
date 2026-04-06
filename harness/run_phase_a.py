@@ -144,6 +144,10 @@ def append_lineage(record: ExperimentRecord, artifact: dict[str, Any], lineage_p
             "status": record.status,
             "run_dir": record.run_dir,
             "card_id": artifact["card_id"],
+            "target_instrument_universe": artifact["target_instrument_universe"],
+            "source_instrument_universe": artifact["source_instrument_universe"],
+            "contains_cross_security_source": artifact["contains_cross_security_source"],
+            "universe_filter_version": artifact["universe_filter_version"],
         }
     )
     lineage_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")

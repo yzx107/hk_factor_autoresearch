@@ -191,6 +191,8 @@ def run_pre_eval_for_factor(
         "source_instrument_universe": str(run_summary.get("source_instrument_universe", "")),
         "contains_cross_security_source": bool(run_summary.get("contains_cross_security_source", False)),
         "universe_filter_version": str(run_summary.get("universe_filter_version", "")),
+        "factor_profile": run_summary.get("factor_profile", {}),
+        "family_profile": run_summary.get("family_profile", {}),
         "notes": notes,
         "labels_path": str(labels_path) if labels_path else "",
         **summary,

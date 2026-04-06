@@ -1,2 +1,0 @@
-triage_id	created_at	family_name	candidate_count	shortlisted_count	shortlist_rate	common_failure_modes_json	average_redundancy_profile	entropy_regime_sensitivity	significance_quality	promotion_ready_count	notes
-triage_20260406T170515Z_board_demo	2026-04-06T17:05:15.144360+00:00	demo_family	1	1	1.0	{}	0.1		1.0	1	demo

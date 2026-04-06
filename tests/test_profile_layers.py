@@ -51,7 +51,7 @@ class ProfileLayerTest(unittest.TestCase):
         self.assertTrue(profile["supports_default_lane"])
         self.assertFalse(profile["supports_extension_lane"])
         self.assertFalse(profile["contains_caveat_fields"])
-        self.assertEqual(profile["required_year_grade"], "2025,2026")
+        self.assertEqual(profile["required_year_grade"], ["coarse_only", "fine_ok"])
         self.assertEqual(profile["baseline_comparators"], ["baseline_a"])
         self.assertEqual(profile["known_failure_modes"], ["low_coverage"])
 
@@ -81,8 +81,8 @@ class ProfileLayerTest(unittest.TestCase):
         self.assertEqual(profile["current_best_variants"], ["variant_b"])
         self.assertEqual(profile["known_failure_patterns"], ["weak_ic", "high_redundancy"])
         self.assertEqual(profile["baseline_refs"], ["baseline_a"])
-        self.assertEqual(profile["regime_sensitivity"], "high_entropy")
-        self.assertFalse(profile["extension_lane_eligibility"])
+        self.assertEqual(profile["regime_sensitivity"], ["high_entropy"])
+        self.assertEqual(profile["extension_lane_eligibility"], "default_lane_only")
 
 
 if __name__ == "__main__":
