@@ -3,8 +3,11 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .venv/
+.venv312/
+.vscode/
 build/
 dist/
+*.egg-info/
 runs/
 reports/
 cache/
