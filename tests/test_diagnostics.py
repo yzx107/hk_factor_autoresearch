@@ -16,13 +16,27 @@ class DiagnosticsTest(unittest.TestCase):
                 "signal": [1.0, 2.0, -1.0],
             }
         )
-        diagnostics = build_signal_diagnostics(frame, score_column="signal", top_n=1)
+        annotations = pl.DataFrame(
+            {
+                "date": ["2026-03-13", "2026-03-14"],
+                "year_grade": ["fine_ok", "fine_ok"],
+                "entropy_quantile": ["q1_low_entropy", "q3_high_entropy"],
+            }
+        )
+        diagnostics = build_signal_diagnostics(
+            frame,
+            score_column="signal",
+            top_n=1,
+            date_annotations=annotations,
+        )
         self.assertEqual(diagnostics["row_count"], 3)
         self.assertEqual(diagnostics["date_count"], 2)
         self.assertEqual(diagnostics["distinct_instruments"], 2)
         self.assertEqual(len(diagnostics["per_date"]), 2)
         self.assertEqual(len(diagnostics["top_by_date"]), 2)
         self.assertEqual(len(diagnostics["bottom_by_date"]), 2)
+        self.assertEqual(diagnostics["regime_columns"], ["year_grade", "entropy_quantile"])
+        self.assertEqual(diagnostics["regime_annotations"][0]["entropy_quantile"], "q1_low_entropy")
 
 
 if __name__ == "__main__":

@@ -65,6 +65,7 @@
 - year slice
 - volatility slice
 - turnover slice
+- entropy slice
 - open / midday / close
 - large / mid / small cap
 

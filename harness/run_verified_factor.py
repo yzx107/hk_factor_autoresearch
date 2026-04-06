@@ -17,6 +17,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from evaluation.diagnostics import build_signal_diagnostics
+from diagnostics.regime_slices import build_regime_slice_frame
 from gatekeeper.gate_a_data import load_research_card
 from harness.daily_agg import (
     build_daily_agg_cache_loader,
@@ -231,7 +232,12 @@ def run_verified_factor_experiment(
             ),
         )
     signal_df = signal_lazy.collect()
-    diagnostics = build_signal_diagnostics(signal_df, score_column=score_column)
+    signal_dates = sorted({str(value) for value in signal_df["date"].to_list()})
+    diagnostics = build_signal_diagnostics(
+        signal_df,
+        score_column=score_column,
+        date_annotations=build_regime_slice_frame(signal_dates),
+    )
 
     run_dir = Path(record.run_dir)
     signal_path = run_dir / "factor_output.parquet"

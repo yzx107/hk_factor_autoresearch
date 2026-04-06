@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import date as dt_date
+from math import fsum, log
 from pathlib import Path
 from typing import Any
 
@@ -20,7 +21,9 @@ DEFAULT_SLICE_COLUMNS = [
     "year_grade",
     "market_turnover_regime",
     "market_volatility_regime",
+    "entropy_quantile",
 ]
+ENTROPY_QUANTILE_COUNT = 3
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -30,11 +33,59 @@ def _previous_date_map(dates: list[str]) -> dict[str, str]:
     return {ordered[index]: ordered[index - 1] for index in range(1, len(ordered))}
 
 
+def _effective_bucket_count(row_count: int, requested_bins: int) -> int:
+    if row_count <= 1:
+        return 1
+    return max(2, min(requested_bins, row_count))
+
+
+def _equal_frequency_bins(values: list[float], requested_bins: int) -> tuple[list[int], int]:
+    effective_bins = _effective_bucket_count(len(values), requested_bins)
+    if effective_bins <= 1:
+        return [0 for _ in values], effective_bins
+    order = sorted(range(len(values)), key=lambda idx: (values[idx], idx))
+    bins = [0 for _ in values]
+    for rank, idx in enumerate(order):
+        bins[idx] = min((rank * effective_bins) // len(values), effective_bins - 1)
+    return bins, effective_bins
+
+
+def _entropy_quantile_labels(values: list[float]) -> tuple[list[str], int]:
+    bins, effective_bins = _equal_frequency_bins(values, ENTROPY_QUANTILE_COUNT)
+    if effective_bins <= 1:
+        names = ["q1_all_entropy"]
+    elif effective_bins == 2:
+        names = ["q1_low_entropy", "q2_high_entropy"]
+    elif effective_bins == 3:
+        names = ["q1_low_entropy", "q2_mid_entropy", "q3_high_entropy"]
+    else:
+        names = [f"q{index + 1}_entropy" for index in range(effective_bins)]
+    return [names[bin_id] for bin_id in bins], effective_bins
+
+
+def _normalized_turnover_entropy(values: list[float | None]) -> float | None:
+    positive_turnover = [float(value) for value in values if value is not None and float(value) > 0.0]
+    if not positive_turnover:
+        return None
+    total_turnover = fsum(positive_turnover)
+    if total_turnover <= 0.0:
+        return None
+    if len(positive_turnover) == 1:
+        return 0.0
+    shares = [value / total_turnover for value in positive_turnover]
+    entropy = -fsum(share * log(share) for share in shares if share > 0.0)
+    max_entropy = log(len(shares))
+    if max_entropy <= 0.0:
+        return 0.0
+    return entropy / max_entropy
+
+
 def apply_regime_labels(stats: pl.DataFrame) -> pl.DataFrame:
     if stats.is_empty():
         return stats
 
-    turnover_median = stats["market_total_turnover"].median()
+    turnover_values = stats["market_total_turnover"].drop_nulls()
+    turnover_median = turnover_values.median() if len(turnover_values) else None
     volatility_values = stats["market_abs_close_return"].drop_nulls()
     volatility_median = volatility_values.median() if len(volatility_values) else None
 
@@ -44,12 +95,17 @@ def apply_regime_labels(stats: pl.DataFrame) -> pl.DataFrame:
         .replace_strict(YEAR_GRADE_MAP, default="unknown_year")
         .alias("year_grade")
     )
-    turnover_expr = (
-        pl.when(pl.col("market_total_turnover") >= turnover_median)
-        .then(pl.lit("high_turnover"))
-        .otherwise(pl.lit("low_turnover"))
-        .alias("market_turnover_regime")
-    )
+    if turnover_median is None:
+        turnover_expr = pl.lit("insufficient_history").alias("market_turnover_regime")
+    else:
+        turnover_expr = (
+            pl.when(pl.col("market_total_turnover").is_null())
+            .then(pl.lit("insufficient_history"))
+            .when(pl.col("market_total_turnover") >= turnover_median)
+            .then(pl.lit("high_turnover"))
+            .otherwise(pl.lit("low_turnover"))
+            .alias("market_turnover_regime")
+        )
     if volatility_median is None:
         volatility_expr = pl.lit("insufficient_history").alias("market_volatility_regime")
     else:
@@ -62,7 +118,30 @@ def apply_regime_labels(stats: pl.DataFrame) -> pl.DataFrame:
             .alias("market_volatility_regime")
         )
 
-    return stats.with_columns([year_grade_expr, turnover_expr, volatility_expr])
+    labeled = stats.with_columns([year_grade_expr, turnover_expr, volatility_expr])
+    if "market_turnover_entropy" not in labeled.columns:
+        return labeled
+
+    entropy_values = labeled.select(["date", "market_turnover_entropy"]).filter(
+        pl.col("market_turnover_entropy").is_not_null()
+    )
+    if entropy_values.is_empty():
+        return labeled.with_columns(pl.lit("insufficient_entropy_history").alias("entropy_quantile"))
+
+    quantile_labels, _ = _entropy_quantile_labels(
+        [float(value) for value in entropy_values["market_turnover_entropy"].to_list()]
+    )
+    entropy_frame = entropy_values.select("date").with_columns(pl.Series("entropy_quantile", quantile_labels))
+    return (
+        labeled.join(entropy_frame, on="date", how="left")
+        .with_columns(
+            pl.when(pl.col("market_turnover_entropy").is_null())
+            .then(pl.lit("insufficient_entropy_history"))
+            .otherwise(pl.col("entropy_quantile"))
+            .alias("entropy_quantile")
+        )
+        .sort("date")
+    )
 
 
 def build_regime_slice_frame(dates: list[str]) -> pl.DataFrame:
@@ -73,8 +152,10 @@ def build_regime_slice_frame(dates: list[str]) -> pl.DataFrame:
                 "year_grade": pl.String,
                 "market_total_turnover": pl.Float64,
                 "market_abs_close_return": pl.Float64,
+                "market_turnover_entropy": pl.Float64,
                 "market_turnover_regime": pl.String,
                 "market_volatility_regime": pl.String,
+                "entropy_quantile": pl.String,
             }
         )
 
@@ -97,10 +178,29 @@ def build_regime_slice_frame(dates: list[str]) -> pl.DataFrame:
     except FileNotFoundError:
         return year_only
 
+    target_dates = {dt_date.fromisoformat(value) for value in dates}
+
     turnover_stats = (
         daily.group_by("date")
         .agg(pl.col("turnover").sum().alias("market_total_turnover"))
-        .filter(pl.col("date").is_in([dt_date.fromisoformat(value) for value in dates]))
+        .filter(pl.col("date").is_in(list(target_dates)))
+    )
+
+    entropy_rows: list[dict[str, object]] = []
+    for date_value, subset in daily.partition_by("date", as_dict=True).items():
+        current_date = date_value[0] if isinstance(date_value, tuple) else date_value
+        if current_date not in target_dates:
+            continue
+        entropy_rows.append(
+            {
+                "date": current_date,
+                "market_turnover_entropy": _normalized_turnover_entropy(subset["turnover"].to_list()),
+            }
+        )
+    entropy_stats = (
+        pl.DataFrame(entropy_rows).with_columns(pl.col("date").cast(pl.Date))
+        if entropy_rows
+        else pl.DataFrame(schema={"date": pl.Date, "market_turnover_entropy": pl.Float64})
     )
 
     current_prices = daily.select(["date", "instrument_key", "close_like_price"])
@@ -131,10 +231,10 @@ def build_regime_slice_frame(dates: list[str]) -> pl.DataFrame:
         .agg(pl.col("abs_close_return").mean().alias("market_abs_close_return"))
     )
 
-    date_frame = pl.DataFrame({"date": dates}).with_columns(pl.col("date").str.to_date())
     stats = (
         year_only.join(turnover_stats, on="date", how="left")
         .join(return_stats, on="date", how="left")
+        .join(entropy_stats, on="date", how="left")
         .sort("date")
     )
     return apply_regime_labels(stats)
@@ -156,6 +256,7 @@ def build_regime_slice_summary(
     joined = per_date.join(annotations, on="date", how="left")
     summary: dict[str, list[dict[str, Any]]] = {}
     for slice_name in slice_columns:
+        nmi_column = "nmi" if "nmi" in joined.columns else "normalized_mutual_info"
         grouped = (
             joined.filter(pl.col(slice_name).is_not_null())
             .group_by(slice_name)
@@ -165,7 +266,7 @@ def build_regime_slice_summary(
                     pl.col("labeled_rows").sum().alias("labeled_rows"),
                     pl.col("rank_ic").mean().alias("mean_rank_ic"),
                     pl.col("rank_ic").abs().mean().alias("mean_abs_rank_ic"),
-                    pl.col("normalized_mutual_info").mean().alias("mean_normalized_mutual_info"),
+                    pl.col(nmi_column).mean().alias("mean_normalized_mutual_info"),
                     pl.col("top_bottom_spread").mean().alias("mean_top_bottom_spread"),
                     pl.col("coverage_ratio").mean().alias("mean_coverage_ratio"),
                 ]
@@ -180,6 +281,11 @@ def build_regime_slice_summary(
                 "mean_rank_ic": None if row["mean_rank_ic"] is None else float(row["mean_rank_ic"]),
                 "mean_abs_rank_ic": None if row["mean_abs_rank_ic"] is None else float(row["mean_abs_rank_ic"]),
                 "mean_normalized_mutual_info": (
+                    None
+                    if row["mean_normalized_mutual_info"] is None
+                    else float(row["mean_normalized_mutual_info"])
+                ),
+                "mean_nmi": (
                     None
                     if row["mean_normalized_mutual_info"] is None
                     else float(row["mean_normalized_mutual_info"])

@@ -53,6 +53,8 @@ python3 harness/run_verified_factor.py \
 - `preview.json`
 - `factor_output.parquet`
 
+`diagnostics_summary.json` 会附带日期级 `regime_annotations`，其中包含基于市场成交额分布熵的 `entropy_quantile` 切片。
+
 比较最近一次 run：
 
 ```bash
@@ -106,6 +108,11 @@ python3 harness/autoresearch_cycle.py \
 每个 pre-eval 会写出：
 - `pre_eval_summary.json`
 - `label_preview.json`
+
+`pre_eval_summary.json` 的正式聚合指标放在 `aggregate_metrics`，最小固定字段包括：
+- `rank_ic`
+- `top_bottom_spread`
+- `nmi`
 
 每个 Gate B run 会写出：
 - `gate_b_summary.json`

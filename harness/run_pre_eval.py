@@ -216,7 +216,8 @@ def main() -> int:
         f"{pre_eval_id} factor={payload['factor_name']} "
         f"evaluated_dates={payload['labeled_date_count']} "
         f"joined_rows={payload['joined_rows']} "
-        f"mean_abs_rank_ic={payload['mean_abs_rank_ic']}"
+        f"mean_abs_rank_ic={payload['mean_abs_rank_ic']} "
+        f"nmi={payload['nmi']}"
     )
     return 0
 

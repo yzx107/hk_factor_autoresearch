@@ -48,6 +48,7 @@ def build_signal_diagnostics(
     *,
     score_column: str,
     top_n: int = 5,
+    date_annotations: pl.DataFrame | None = None,
 ) -> dict[str, Any]:
     if score_column not in signal_df.columns:
         raise ValueError(f"Missing score column `{score_column}` in signal output.")
@@ -91,4 +92,7 @@ def build_signal_diagnostics(
         "top_by_date": _records(top_rows),
         "bottom_by_date": _records(bottom_rows),
     }
+    if date_annotations is not None and not date_annotations.is_empty():
+        diagnostics["regime_columns"] = [column for column in date_annotations.columns if column != "date"]
+        diagnostics["regime_annotations"] = _records(date_annotations.sort("date"))
     return diagnostics

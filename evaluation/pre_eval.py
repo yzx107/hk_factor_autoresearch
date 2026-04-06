@@ -279,6 +279,8 @@ def build_pre_eval_summary(
             row["mutual_info"] = metrics.get("mutual_info")
             row["normalized_mutual_info"] = metrics.get("normalized_mutual_info")
             row["mi_bin_count"] = metrics.get("mi_bin_count")
+            row["mi"] = metrics.get("mutual_info")
+            row["nmi"] = metrics.get("normalized_mutual_info")
 
         joined_preview = _records(joined.sort(["date", score_column], descending=[False, True]).head(10))
         rank_ic_values = [float(item["rank_ic"]) for item in per_date_rows if item["rank_ic"] is not None]
@@ -302,6 +304,14 @@ def build_pre_eval_summary(
         mean_coverage_ratio = _average(coverage_values)
 
     regime_slices = build_regime_slice_summary(per_date_rows, date_annotations)
+    aggregate_metrics = {
+        "rank_ic": mean_rank_ic,
+        "abs_rank_ic": mean_abs_rank_ic,
+        "mi": mean_mutual_info,
+        "nmi": mean_normalized_mutual_info,
+        "top_bottom_spread": mean_top_bottom_spread,
+        "coverage_ratio": mean_coverage_ratio,
+    }
 
     return {
         "label_name": label_column,
@@ -309,12 +319,19 @@ def build_pre_eval_summary(
         "score_column": score_column,
         "mi_binning": MI_BINNING,
         "mi_bin_count": mi_bin_count,
+        "aggregate_metrics": aggregate_metrics,
         "factor_date_count": len(factor_dates),
         "factor_dates": factor_dates,
         "labeled_date_count": len(labeled_dates),
         "labeled_dates": labeled_dates,
         "skipped_dates": skipped_dates,
         "joined_rows": int(joined.height),
+        "rank_ic": mean_rank_ic,
+        "abs_rank_ic": mean_abs_rank_ic,
+        "mi": mean_mutual_info,
+        "nmi": mean_normalized_mutual_info,
+        "top_bottom_spread": mean_top_bottom_spread,
+        "coverage_ratio": mean_coverage_ratio,
         "mean_rank_ic": mean_rank_ic,
         "mean_abs_rank_ic": mean_abs_rank_ic,
         "mean_mutual_info": mean_mutual_info,

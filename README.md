@@ -50,9 +50,11 @@
 - `gates/promotion_policy.md`：把 Gate A/B/C/D/E 的目标和输出固定下来
 
 固定 pre-eval 当前输出：
-- rank IC
-- top-bottom spread
-- 在固定分箱规则下计算的 normalized mutual information（NMI）
+- `aggregate_metrics.rank_ic`
+- `aggregate_metrics.top_bottom_spread`
+- `aggregate_metrics.nmi`
+- 兼容旧消费者时，仍同时保留 `mean_rank_ic` / `mean_top_bottom_spread` / `mean_normalized_mutual_info`
+- `regime_slices.entropy_quantile` 会把日期切成低熵 / 中熵 / 高熵市场状态，用于回答因子在不同信息熵状态下是否更有效
 
 这里没有什么：
 - 没有多 agent 搜索工厂
@@ -158,6 +160,13 @@ runs/<scoreboard_id>/scoreboard_report.md
 ```text
 runs/<experiment_id>/diagnostics_summary.json
 ```
+
+其中会附带固定 `regime_annotations`，包括：
+- `year_grade`
+- `market_turnover_regime`
+- `market_volatility_regime`
+- `market_turnover_entropy`
+- `entropy_quantile`
 
 每个固定 pre-eval run 会写：
 
