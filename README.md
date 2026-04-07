@@ -95,6 +95,8 @@
 - `registry/reject_reason_log.tsv` 与 `registry/family_performance_summary.tsv` 是 append-only triage feedback logs，但默认不纳入 git 跟踪
 - `minimal backtest lane` 只用于 shortlist 的统一低自由度压力测试，不是假装成 production backtester
 - 最近一轮正式闭环验收见 `docs/acceptance_run_summary_2026-04.md`
+- 最新 second-family confirmation acceptance 见 `docs/acceptance_run_summary_2026-04_close_vwap_pressure.md`
+- 最近一轮 second-family confirmation acceptance 见 `docs/acceptance_run_summary_2026-04_close_vwap_pressure.md`
 
 最小 smoke：
 

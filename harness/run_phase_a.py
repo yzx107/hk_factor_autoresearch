@@ -7,6 +7,7 @@ import csv
 from dataclasses import dataclass, asdict
 from datetime import datetime, timezone
 import json
+from json import JSONDecodeError, JSONDecoder
 from pathlib import Path
 import re
 import sys
@@ -132,8 +133,25 @@ def append_experiment_log(record: ExperimentRecord, log_path: Path = DEFAULT_LOG
         )
 
 
+def _load_lineage_payload(lineage_path: Path) -> dict[str, Any]:
+    if not lineage_path.exists():
+        return {"version": "phase_a_lineage_v1", "experiments": []}
+    text = lineage_path.read_text(encoding="utf-8").strip()
+    if not text:
+        return {"version": "phase_a_lineage_v1", "experiments": []}
+    try:
+        payload = json.loads(text)
+    except JSONDecodeError:
+        payload, _ = JSONDecoder().raw_decode(text)
+    if not isinstance(payload, dict):
+        return {"version": "phase_a_lineage_v1", "experiments": []}
+    payload.setdefault("version", "phase_a_lineage_v1")
+    payload.setdefault("experiments", [])
+    return payload
+
+
 def append_lineage(record: ExperimentRecord, artifact: dict[str, Any], lineage_path: Path = DEFAULT_LINEAGE) -> None:
-    payload = json.loads(lineage_path.read_text(encoding="utf-8"))
+    payload = _load_lineage_payload(lineage_path)
     payload.setdefault("experiments", []).append(
         {
             "experiment_id": record.experiment_id,

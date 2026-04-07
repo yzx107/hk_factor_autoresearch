@@ -38,6 +38,31 @@ class HarnessSmokeTest(unittest.TestCase):
             lineage = json.loads(lineage_path.read_text(encoding="utf-8"))
             self.assertEqual(len(lineage["experiments"]), 1)
 
+    def test_run_experiment_recovers_from_lineage_with_trailing_garbage(self) -> None:
+        with TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+            log_path = tmp / "experiment_log.tsv"
+            log_path.write_text(
+                "experiment_id\tcreated_at\towner\tfactor_name\tcard_path\tconfig_version\t"
+                "harness_version\tgate_a_decision\tresult_summary\tstatus\t"
+                "parent_experiment_id\trun_dir\tnotes\n",
+                encoding="utf-8",
+            )
+            lineage_path = tmp / "lineage.json"
+            lineage_path.write_text('{"version":"test","experiments":[]}TRAILING_GARBAGE', encoding="utf-8")
+            record = run_experiment(
+                card_path=ROOT / "research_cards/examples/structural_activity_proxy_2026.md",
+                factor_name="structural_activity_proxy",
+                owner="test",
+                notes="",
+                parent_experiment_id="",
+                log_path=log_path,
+                lineage_path=lineage_path,
+                run_root=tmp / "runs",
+            )
+            self.assertEqual(record.gate_a_decision, "pass")
+            lineage = json.loads(lineage_path.read_text(encoding="utf-8"))
+            self.assertEqual(len(lineage["experiments"]), 1)
 
 if __name__ == "__main__":
     unittest.main()
