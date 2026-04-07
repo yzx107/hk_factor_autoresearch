@@ -88,6 +88,7 @@ class BacktestRunnerTest(unittest.TestCase):
             self.assertTrue(backtest_id.startswith("bt_"))
             self.assertTrue(summary_path.exists())
             self.assertEqual(payload["result"]["policy_version"], "minimal_backtest_lane_v1")
+            self.assertEqual(payload["backtest_id"], backtest_id)
             self.assertEqual(payload["target_instrument_universe"], "stock_research_candidate")
             self.assertIn("spread_return", payload)
             self.assertIn("turnover_proxy", payload)

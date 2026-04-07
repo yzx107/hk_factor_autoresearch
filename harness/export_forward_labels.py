@@ -60,16 +60,20 @@ def export_forward_labels(
             .sort(["date", "instrument_key"])
         )
     else:
-        close_like = collect_daily_frames_from_loader(
-            table_loader=lambda load_dates, columns: load_verified_lazy(
-                "verified_trades",
-                load_dates,
-                columns,
-                target_instrument_universe=target_instrument_universe,
-            ),
-            source_columns=["date", "source_file", "Time", "Price", "row_num_in_file"],
-            daily_frame_builder=build_close_like_frame,
-            dates=label_dates,
+        close_like = (
+            collect_daily_frames_from_loader(
+                table_loader=lambda load_dates, columns: load_verified_lazy(
+                    "verified_trades",
+                    load_dates,
+                    columns,
+                    target_instrument_universe=target_instrument_universe,
+                ),
+                source_columns=["date", "source_file", "Time", "Price", "row_num_in_file"],
+                daily_frame_builder=build_close_like_frame,
+                dates=label_dates,
+            )
+            .collect()
+            .sort(["date", "instrument_key"])
         )
     labels_df = build_forward_return_labels(close_like, next_date_map=next_map, label_name=LABEL_NAME)
 

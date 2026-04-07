@@ -82,6 +82,7 @@ def run_minimal_backtest_for_factor(
     report_path = run_root / "minimal_backtest_report.md"
 
     payload = {
+        **result.as_dict(),
         "backtest_id": backtest_id,
         "created_at": created_at,
         "notes": notes,
@@ -92,7 +93,6 @@ def run_minimal_backtest_for_factor(
         "labels_path": str(labels_path),
         "factor_profile": data_summary.get("factor_profile", {}),
         "family_profile": data_summary.get("family_profile", {}),
-        **result.as_dict(),
     }
     result_payload = result.as_dict()
     result_payload["backtest_id"] = backtest_id

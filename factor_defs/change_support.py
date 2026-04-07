@@ -64,7 +64,11 @@ def collect_daily_frames_from_loader(
 ) -> pl.LazyFrame:
     daily_frames: list[pl.DataFrame] = []
     for date in dates:
-        daily_frames.append(daily_frame_builder(table_loader([date], source_columns)).collect())
+        built = daily_frame_builder(table_loader([date], source_columns))
+        if isinstance(built, pl.LazyFrame):
+            daily_frames.append(built.collect())
+        else:
+            daily_frames.append(built)
     if not daily_frames:
         return pl.DataFrame().lazy()
     return pl.concat(daily_frames, how="vertical_relaxed").lazy()

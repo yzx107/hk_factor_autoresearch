@@ -113,6 +113,8 @@ def _recommendations(histogram: Counter[str], total: int) -> list[str]:
         recommendations.append("Shift search toward a different family or a less redundant transform chain.")
     if histogram["weak_ic"] >= max(2, total // 3):
         recommendations.append("Retire weak variants and reframe the family mechanism hypothesis.")
+    if histogram["inverse_candidate_only"] > 0:
+        recommendations.append("Review negative-signed variants as explicit inverse candidates before promoting them.")
     if histogram["narrow_entropy_regime_only"] >= max(2, total // 4):
         recommendations.append("Add regime-explicit variants or broaden entropy slice coverage.")
     if histogram["caveat_dependence_too_high"] > 0:
@@ -172,7 +174,7 @@ def run_auto_triage(
                 factor_output,
                 labels_df,
                 factor_name=str(row["factor_name"]),
-                score_column=str(row["score_column"]),
+                score_column=str(row.get("score_column", data_summary.get("score_column", ""))),
                 label_column=str(labels_path and "forward_return_1d_close_like" or "forward_return_1d_close_like"),
                 target_instrument_universe=str(data_summary.get("target_instrument_universe", "")),
                 source_instrument_universe=str(data_summary.get("source_instrument_universe", "")),

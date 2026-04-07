@@ -25,6 +25,7 @@ HARD_REJECT_REASON_ORDER = [
 ]
 
 SOFT_REJECT_REASON_ORDER = [
+    "inverse_candidate_only",
     "unstable_across_dates",
     "narrow_entropy_regime_only",
     "high_redundancy_to_baseline",
@@ -84,6 +85,17 @@ def _entropy_narrow_only(regime_summary: list[dict[str, Any]] | None) -> bool:
         return False
     tail_strong = sum(1 for _, value in scored[1:] if value is not None and float(value) >= best * 0.5)
     return tail_strong == 0
+
+
+def _inverse_candidate_only(row: dict[str, Any]) -> bool:
+    mean_abs_rank_ic = _metric(row, "mean_abs_rank_ic")
+    mean_rank_ic = _metric(row, "mean_rank_ic")
+    mean_top_bottom_spread = _metric(row, "mean_top_bottom_spread")
+    if mean_abs_rank_ic is None or mean_rank_ic is None or mean_top_bottom_spread is None:
+        return False
+    if mean_abs_rank_ic < THRESHOLDS["min_mean_abs_rank_ic"]:
+        return False
+    return mean_rank_ic < 0.0 and mean_top_bottom_spread < 0.0
 
 
 def _reason_snapshot(row: dict[str, Any], backtest_summary: dict[str, Any] | None) -> dict[str, Any]:
@@ -150,6 +162,8 @@ def derive_reject_reasons(
     mean_abs_rank_ic = _metric(row, "mean_abs_rank_ic")
     if mean_abs_rank_ic is not None and mean_abs_rank_ic < THRESHOLDS["min_mean_abs_rank_ic"]:
         reasons.append("weak_ic")
+    elif _inverse_candidate_only(row):
+        reasons.append("inverse_candidate_only")
 
     mean_nmi = _metric(row, "mean_nmi", "mean_normalized_mutual_info")
     if mean_nmi is not None and mean_nmi < THRESHOLDS["min_mean_nmi"]:

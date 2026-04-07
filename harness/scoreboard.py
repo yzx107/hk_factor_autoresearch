@@ -24,6 +24,7 @@ from diagnostics.redundancy import (
     load_baseline_registry,
 )
 from evaluation.robustness import summarize_signs
+from harness.compare_factors import run_factor_comparison
 from harness.triage import derive_reject_reasons
 
 EXPERIMENT_LOG = ROOT / "registry" / "experiment_log.tsv"
@@ -298,6 +299,103 @@ def _comparison_row(entry: dict[str, str]) -> dict[str, Any]:
     }
 
 
+def _comparison_payload_row(payload: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "comparison_id": payload["comparison_id"],
+        "left_factor": payload["left"]["factor_name"],
+        "right_factor": payload["right"]["factor_name"],
+        "common_dates": payload["common_dates"],
+        "common_rows": payload["common_rows"],
+        "per_date_corr": payload["per_date"],
+        "top_overlap": payload["top_overlap"],
+    }
+
+
+def _comparison_matches_experiments(
+    entry: dict[str, str],
+    *,
+    left_experiment_id: str,
+    right_experiment_id: str,
+) -> bool:
+    return {
+        str(entry.get("left_experiment_id", "")),
+        str(entry.get("right_experiment_id", "")),
+    } == {left_experiment_id, right_experiment_id}
+
+
+def _load_or_materialize_comparison_row(
+    *,
+    left_entry: dict[str, str],
+    right_entry: dict[str, str],
+    comparison_index: dict[tuple[str, str], dict[str, str]],
+    notes: str,
+) -> dict[str, Any]:
+    key = tuple(sorted((left_entry["factor_name"], right_entry["factor_name"])))
+    existing = comparison_index.get(key)
+    if existing and _comparison_matches_experiments(
+        existing,
+        left_experiment_id=left_entry["experiment_id"],
+        right_experiment_id=right_entry["experiment_id"],
+    ):
+        return _comparison_row(existing)
+
+    comparison_id, payload, summary_path = run_factor_comparison(
+        left_factor=left_entry["factor_name"],
+        right_factor=right_entry["factor_name"],
+        left_experiment=left_entry["experiment_id"],
+        right_experiment=right_entry["experiment_id"],
+        notes=notes,
+    )
+    comparison_index[key] = {
+        "comparison_id": comparison_id,
+        "left_experiment_id": left_entry["experiment_id"],
+        "right_experiment_id": right_entry["experiment_id"],
+        "left_factor": payload["left"]["factor_name"],
+        "right_factor": payload["right"]["factor_name"],
+        "summary_path": str(summary_path),
+    }
+    return _comparison_payload_row(payload)
+
+
+def _collect_baseline_comparison_rows(
+    *,
+    factor_rows: list[dict[str, Any]],
+    latest_runs: dict[str, dict[str, str]],
+    comparison_index: dict[tuple[str, str], dict[str, str]],
+    baseline_registry: dict[str, Any],
+    notes: str,
+) -> tuple[list[dict[str, Any]], list[str]]:
+    baseline_factors = [str(name) for name in baseline_registry.get("default_baselines", [])]
+    requested_factor_names = {str(row["factor_name"]) for row in factor_rows}
+    seen_pairs: set[tuple[str, str]] = set()
+    comparison_rows: list[dict[str, Any]] = []
+    missing_comparisons: list[str] = []
+
+    for factor in factor_rows:
+        factor_name = str(factor["factor_name"])
+        factor_entry = latest_runs[factor_name]
+        for baseline_name in baseline_factors:
+            if baseline_name == factor_name or baseline_name in requested_factor_names:
+                continue
+            baseline_entry = latest_runs.get(baseline_name)
+            key = tuple(sorted((factor_name, baseline_name)))
+            if key in seen_pairs:
+                continue
+            seen_pairs.add(key)
+            if baseline_entry is None:
+                missing_comparisons.append(f"{factor_name}__{baseline_name}")
+                continue
+            comparison_rows.append(
+                _load_or_materialize_comparison_row(
+                    left_entry=factor_entry,
+                    right_entry=baseline_entry,
+                    comparison_index=comparison_index,
+                    notes=notes,
+                )
+            )
+    return comparison_rows, missing_comparisons
+
+
 def _score_sort_key(row: dict[str, Any]) -> tuple[bool, float, float, float, float, float]:
     abs_ic = row["mean_abs_rank_ic"]
     normalized_mi = row.get("mean_nmi", row.get("mean_normalized_mutual_info"))
@@ -370,6 +468,7 @@ def _derive_factor_board(
             "baseline_role": baseline_metrics["baseline_role"],
             "baseline_peer_count": baseline_metrics["baseline_peer_count"],
             "table_name": factor["table_name"],
+            "score_column": factor["score_column"],
             "output_rows": factor["output_rows"],
             "distinct_instruments": factor["distinct_instruments"],
             "overall_score_mean": factor["overall_score_mean"],
@@ -457,6 +556,10 @@ def _render_markdown(payload: dict[str, Any]) -> str:
     lines.append(f"- created_at: `{payload['created_at']}`")
     lines.append(f"- factor_count: `{payload['factor_count']}`")
     lines.append(f"- comparison_count: `{payload['comparison_count']}`")
+    if "peer_comparison_count" in payload:
+        lines.append(f"- peer_comparison_count: `{payload['peer_comparison_count']}`")
+    if "baseline_comparison_count" in payload:
+        lines.append(f"- baseline_comparison_count: `{payload['baseline_comparison_count']}`")
     lines.append(f"- pre_eval_count: `{payload['pre_eval_count']}`")
     lines.append(f"- baseline_count: `{len(baseline_factors)}`")
     if baseline_factors:
@@ -573,6 +676,13 @@ def _render_markdown(payload: dict[str, Any]) -> str:
         lines.append("")
         for item in payload["missing_comparisons"]:
             lines.append(f"- `{item}`")
+    missing_baseline_comparisons = list(payload.get("missing_baseline_comparisons", []))
+    if missing_baseline_comparisons:
+        lines.append("")
+        lines.append("## Missing Baseline Comparisons")
+        lines.append("")
+        for item in missing_baseline_comparisons:
+            lines.append(f"- `{item}`")
     lines.append("")
     lines.append("## Triage")
     lines.append("")
@@ -643,16 +753,26 @@ def build_scoreboard(factor_names: list[str], *, notes: str) -> tuple[str, dict[
         row["pre_eval"] = _pre_eval_row(latest_pre_eval.get(row["experiment_id"]))
         factor_rows.append(row)
 
+    baseline_registry = load_baseline_registry()
     comparison_entries = _read_tsv(COMPARISON_LOG)
     comparison_index = _comparison_index(comparison_entries)
-    comparison_rows: list[dict[str, Any]] = []
+    peer_comparison_rows: list[dict[str, Any]] = []
     missing_comparisons: list[str] = []
     for left, right in itertools.combinations(sorted(factor_names), 2):
         key = (left, right)
         if key in comparison_index:
-            comparison_rows.append(_comparison_row(comparison_index[key]))
+            peer_comparison_rows.append(_comparison_row(comparison_index[key]))
         else:
             missing_comparisons.append(f"{left}__{right}")
+
+    baseline_comparison_rows, missing_baseline_comparisons = _collect_baseline_comparison_rows(
+        factor_rows=factor_rows,
+        latest_runs=latest_runs,
+        comparison_index=comparison_index,
+        baseline_registry=baseline_registry,
+        notes=notes,
+    )
+    comparison_rows = peer_comparison_rows + baseline_comparison_rows
 
     created_at = datetime.now(timezone.utc).isoformat()
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
@@ -661,7 +781,6 @@ def build_scoreboard(factor_names: list[str], *, notes: str) -> tuple[str, dict[
     run_dir.mkdir(parents=True, exist_ok=True)
     summary_path = run_dir / "scoreboard_summary.json"
     report_path = run_dir / "scoreboard_report.md"
-    baseline_registry = load_baseline_registry()
     factor_board = _derive_factor_board(factor_rows, comparison_rows, baseline_registry)
 
     payload = {
@@ -670,6 +789,8 @@ def build_scoreboard(factor_names: list[str], *, notes: str) -> tuple[str, dict[
         "notes": notes,
         "factor_count": len(factor_rows),
         "comparison_count": len(comparison_rows),
+        "peer_comparison_count": len(peer_comparison_rows),
+        "baseline_comparison_count": len(baseline_comparison_rows),
         "pre_eval_count": sum(1 for row in factor_rows if row["pre_eval"] is not None),
         "baseline_registry": baseline_registry,
         "baseline_factors": list(baseline_registry.get("default_baselines", [])),
@@ -677,6 +798,7 @@ def build_scoreboard(factor_names: list[str], *, notes: str) -> tuple[str, dict[
         "factor_board": factor_board,
         "comparisons": comparison_rows,
         "missing_comparisons": missing_comparisons,
+        "missing_baseline_comparisons": missing_baseline_comparisons,
     }
     summary_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     report_path.write_text(_render_markdown(payload), encoding="utf-8")
