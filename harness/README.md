@@ -1,6 +1,7 @@
 # Harness
 
 这个目录放的是 Phase A 的固定实验 harness。
+最近一轮正式闭环验收总结见 `docs/acceptance_run_summary_2026-04.md`。
 
 基本规则：
 - 研究员和 agent 可以改 idea
