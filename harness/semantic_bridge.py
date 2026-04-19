@@ -5,6 +5,7 @@ from __future__ import annotations
 import csv
 from dataclasses import dataclass
 from datetime import datetime, timezone
+import json
 import os
 from pathlib import Path
 from typing import Any
@@ -379,10 +380,10 @@ def append_semantic_gate_log(
                 gate_payload.get("semantic_gate_status", ""),
                 gate_payload.get("semantic_gate_source_loaded", False),
                 gate_payload.get("semantic_gate_mapping_source", ""),
-                str(gate_payload.get("semantic_gate_modules", [])),
-                str(gate_payload.get("semantic_supported_modules", [])),
-                str(gate_payload.get("semantic_blocked_modules", [])),
-                str(gate_payload.get("semantic_blocking_areas", [])),
+                json.dumps(gate_payload.get("semantic_gate_modules", []), ensure_ascii=False),
+                json.dumps(gate_payload.get("semantic_supported_modules", []), ensure_ascii=False),
+                json.dumps(gate_payload.get("semantic_blocked_modules", []), ensure_ascii=False),
+                json.dumps(gate_payload.get("semantic_blocking_areas", []), ensure_ascii=False),
                 gate_payload.get("semantic_gate_reason", ""),
                 notes,
             ]
