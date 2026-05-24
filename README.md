@@ -177,6 +177,13 @@ python3 harness/run_layered_triage.py \
   --layered-board runs/<layer_board_id>/layered_factor_board.json
 ```
 
+对 broad 候选跑分层 Gate C 压力检查：
+
+```bash
+python3 harness/run_layered_gate_c.py \
+  --layered-board runs/<layer_board_id>/layered_factor_board.json
+```
+
 比较最近两条因子 run：
 
 ```bash

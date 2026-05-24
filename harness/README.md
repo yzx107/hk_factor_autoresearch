@@ -68,6 +68,14 @@ python3 harness/run_layered_triage.py \
   --notes "layer-aware factor decision"
 ```
 
+分层 Gate C 压力检查：
+
+```bash
+python3 harness/run_layered_gate_c.py \
+  --layered-board runs/<layer_board_id>/layered_factor_board.json \
+  --notes "layer-aware gate c stress"
+```
+
 建议的 anchor run：
 
 ```bash

@@ -245,7 +245,10 @@ factor works / fails / is untested in layer X under layer_version Y
    writes `layered_factor_board.json` / `layered_factor_board.md`.
 6. Add a layer-aware triage step that converts the board into
    `registry/layered_factor_decisions.tsv` and a monthly decision summary.
-7. Re-run the current accepted factors first. Only after reading layer response
+7. Add a layer-aware Gate C stress step for `promote_broad_candidate` rows:
+   full-sample cost stress, primary-layer split, Southbound split, and early
+   versus late time-slice checks.
+8. Re-run the current accepted factors first. Only after reading layer response
    should new factor specs be added.
 
 ## Source Links
