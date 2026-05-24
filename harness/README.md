@@ -60,6 +60,14 @@ python3 harness/run_layered_pre_eval_batch.py \
   --labels-path runs/<labels_id>/forward_labels.parquet
 ```
 
+固定分层研究决策台账：
+
+```bash
+python3 harness/run_layered_triage.py \
+  --layered-board runs/<layer_board_id>/layered_factor_board.json \
+  --notes "layer-aware factor decision"
+```
+
 建议的 anchor run：
 
 ```bash

@@ -243,7 +243,9 @@ factor works / fails / is untested in layer X under layer_version Y
    map and writes `layered_pre_eval_summary.json`.
 5. Add a batch layer response board that reads latest factor experiments and
    writes `layered_factor_board.json` / `layered_factor_board.md`.
-6. Re-run the current accepted factors first. Only after reading layer response
+6. Add a layer-aware triage step that converts the board into
+   `registry/layered_factor_decisions.tsv` and a monthly decision summary.
+7. Re-run the current accepted factors first. Only after reading layer response
    should new factor specs be added.
 
 ## Source Links

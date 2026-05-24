@@ -170,6 +170,13 @@ python3 harness/run_layered_pre_eval_batch.py \
   --labels-path runs/<labels_id>/forward_labels.parquet
 ```
 
+把分层响应板转成研究决策台账：
+
+```bash
+python3 harness/run_layered_triage.py \
+  --layered-board runs/<layer_board_id>/layered_factor_board.json
+```
+
 比较最近两条因子 run：
 
 ```bash
