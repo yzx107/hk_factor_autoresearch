@@ -53,6 +53,13 @@ python3 harness/run_layered_pre_eval.py \
   --labels-path runs/<labels_id>/forward_labels.parquet
 ```
 
+批量生成分层因子响应板：
+
+```bash
+python3 harness/run_layered_pre_eval_batch.py \
+  --labels-path runs/<labels_id>/forward_labels.parquet
+```
+
 建议的 anchor run：
 
 ```bash

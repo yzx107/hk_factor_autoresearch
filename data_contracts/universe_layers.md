@@ -241,7 +241,9 @@ factor works / fails / is untested in layer X under layer_version Y
    - the builder does not read caveat/top-of-book objects.
 4. Add a layer-aware pre-eval summary that joins factor outputs to the layer
    map and writes `layered_pre_eval_summary.json`.
-5. Re-run the current accepted factors first. Only after reading layer response
+5. Add a batch layer response board that reads latest factor experiments and
+   writes `layered_factor_board.json` / `layered_factor_board.md`.
+6. Re-run the current accepted factors first. Only after reading layer response
    should new factor specs be added.
 
 ## Source Links
