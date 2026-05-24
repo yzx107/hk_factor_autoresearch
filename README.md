@@ -184,6 +184,13 @@ python3 harness/run_layered_gate_c.py \
   --layered-board runs/<layer_board_id>/layered_factor_board.json
 ```
 
+把 broad 候选扩到 cached daily dates 后重跑 Gate C：
+
+```bash
+python3 harness/run_layered_gate_c_extension.py \
+  --layered-board runs/<layer_board_id>/layered_factor_board.json
+```
+
 比较最近两条因子 run：
 
 ```bash

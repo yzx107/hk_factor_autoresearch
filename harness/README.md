@@ -76,6 +76,14 @@ python3 harness/run_layered_gate_c.py \
   --notes "layer-aware gate c stress"
 ```
 
+cached-date 扩样后重跑分层 Gate C：
+
+```bash
+python3 harness/run_layered_gate_c_extension.py \
+  --layered-board runs/<layer_board_id>/layered_factor_board.json \
+  --notes "extended cached-date gate c stress"
+```
+
 建议的 anchor run：
 
 ```bash

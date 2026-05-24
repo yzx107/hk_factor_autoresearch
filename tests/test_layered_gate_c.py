@@ -9,6 +9,7 @@ import polars as pl
 
 from harness.run_layered_gate_c import (
     build_layered_gate_c_summary,
+    _decide_gate_c,
     select_gate_c_candidates,
 )
 
@@ -150,6 +151,27 @@ class LayeredGateCTest(unittest.TestCase):
             self.assertEqual(payload["factors"][0]["factor_name"], "demo_factor")
             self.assertEqual(payload["factors"][0]["direction_hint"], "inverse_candidate")
             self.assertIn(payload["factors"][0]["gate_c_decision"], payload["decision_counts"])
+
+    def test_decide_gate_c_requires_both_southbound_named_buckets_to_pass(self) -> None:
+        decision, reasons = _decide_gate_c(
+            base_passed=True,
+            primary_rows=[
+                {"slice_value": "large_liquid_core", "passed": True},
+                {"slice_value": "mid_liquid_tradable", "passed": True},
+            ],
+            southbound_rows=[
+                {"slice_value": "southbound_eligible", "passed": False},
+                {"slice_value": "southbound_unknown", "passed": False},
+            ],
+            time_rows=[
+                {"slice_value": "early_half", "passed": True},
+                {"slice_value": "late_half", "passed": True},
+            ],
+            policy={"min_primary_pass_layers": 2},
+        )
+
+        self.assertEqual(decision, "needs_southbound_split")
+        self.assertIn("southbound", reasons[0])
 
 
 if __name__ == "__main__":

@@ -248,7 +248,9 @@ factor works / fails / is untested in layer X under layer_version Y
 7. Add a layer-aware Gate C stress step for `promote_broad_candidate` rows:
    full-sample cost stress, primary-layer split, Southbound split, and early
    versus late time-slice checks.
-8. Re-run the current accepted factors first. Only after reading layer response
+8. Add a cached-date extension step that rematerializes broad candidates on
+   all locally cached daily-aggregate dates before repeating Gate C.
+9. Re-run the current accepted factors first. Only after reading layer response
    should new factor specs be added.
 
 ## Source Links

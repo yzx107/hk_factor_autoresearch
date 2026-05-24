@@ -113,7 +113,7 @@ def build_record(
 
 def append_experiment_log(record: ExperimentRecord, log_path: Path = DEFAULT_LOG) -> None:
     with log_path.open("a", encoding="utf-8", newline="") as handle:
-        writer = csv.writer(handle, delimiter="\t")
+        writer = csv.writer(handle, delimiter="\t", lineterminator="\n")
         writer.writerow(
             [
                 record.experiment_id,
