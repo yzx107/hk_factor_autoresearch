@@ -250,7 +250,10 @@ factor works / fails / is untested in layer X under layer_version Y
    versus late time-slice checks.
 8. Add a cached-date extension step that rematerializes broad candidates on
    all locally cached daily-aggregate dates before repeating Gate C.
-9. Re-run the current accepted factors first. Only after reading layer response
+9. Route extended Gate C outcomes into an explicit follow-up queue before
+   writing new factor specs:
+   `southbound_split_retest`, `layer_explicit_rewrite`, or hold/retest lanes.
+10. Re-run the current accepted factors first. Only after reading layer response
    should new factor specs be added.
 
 ## Source Links

@@ -84,6 +84,14 @@ python3 harness/run_layered_gate_c_extension.py \
   --notes "extended cached-date gate c stress"
 ```
 
+把分层 Gate C 结果路由成后续研究队列：
+
+```bash
+python3 harness/route_layered_gate_c_followups.py \
+  --gate-c-summary runs/<gate_c_id>/layered_gate_c_summary.json \
+  --notes "post extended gate c routing"
+```
+
 建议的 anchor run：
 
 ```bash
