@@ -39,6 +39,20 @@ python3 harness/build_daily_agg.py --table all --year 2026
 python3 harness/status.py
 ```
 
+构建股票候选池内部分层：
+
+```bash
+python3 harness/build_universe_layers.py --year 2026 --force
+```
+
+对已有因子做分层 pre-eval 诊断：
+
+```bash
+python3 harness/run_layered_pre_eval.py \
+  --factor structural_activity_proxy \
+  --labels-path runs/<labels_id>/forward_labels.parquet
+```
+
 建议的 anchor run：
 
 ```bash

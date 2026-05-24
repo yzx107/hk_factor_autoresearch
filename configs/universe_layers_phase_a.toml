@@ -1,0 +1,24 @@
+version = "universe_layers_phase_a_v1"
+name = "Phase A stock research candidate universe layers"
+owner = "agent"
+target_instrument_universe = "stock_research_candidate"
+
+[paths]
+instrument_profile = "/Volumes/Data/港股Tick数据/reference/instrument_profile/latest/instrument_profile.parquet"
+newly_listed_hk_template = "/Volumes/Data/港股Tick数据/reference/newly_listed_hk/year={year}/newly_listed_hk_{year}.parquet"
+output_root = "cache/universe_layers"
+
+[liquidity]
+mode = "daily_agg_if_available"
+table = "verified_trades_daily"
+lookback_trading_days = 60
+min_liquidity_days = 20
+reference_fallback = "latest_turnover_then_circulating_or_total_market_cap"
+
+[thresholds]
+early_listing_days = 90
+recent_listing_days = 365
+large_liquidity_quantile = 0.80
+small_liquidity_quantile = 0.30
+min_observed_trades_days = 20
+min_observed_orders_days = 20

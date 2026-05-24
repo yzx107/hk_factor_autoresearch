@@ -9,6 +9,7 @@ Phase A 使用的是保守的消费层 universe，而不是重新定义上游 da
 上游参考：
 - `/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/instrument_universe_classification_boundary_2026-04-06.md`
 - `/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/downstream_research_surface_contract_2026-05-24.md`
+- `data_contracts/universe_layers.md`
 
 默认 universe：
 - `phase_a_core` = 可以基于上游 `verified_orders` 和 `verified_trades` 当前已放行结构字段、并结合声明年份范围来研究的行和证券
@@ -35,6 +36,8 @@ Phase A 使用的是保守的消费层 universe，而不是重新定义上游 da
 - 如果 card 使用 `stock_research_candidate`，必须在 `info_boundary` 中明确写出“这不是 pure common-equity proof，低位非股票例外仍可能残留”
 - 本 repo 不改动上游或固定 evaluator 所拥有的 corporate-action、liquidity、tradability 定义
 - 任何未来更窄的 trading universe 都必须作为命名配置加入，不能在 factor code 里临时推断
+- `universe_layers` 只允许作为 `stock_research_candidate` 内部的研究评估分层，
+  不能替代 target universe，也不能把缺失来源的证券静默提升为干净分层
 - 上游 OpenD / newly-listed caveat handoff 的 universe 不是当前默认股票研究池；
   若要消费，必须作为独立 source lane 或 extension lane 声明，不能替换
   `stock_research_candidate`

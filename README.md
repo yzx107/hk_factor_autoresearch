@@ -26,6 +26,8 @@
 - `data_contracts/caveat_lane.md`：说明哪些字段只能走 `phase_a_caveat_lane`
 - `data_contracts/upstream_surfaces.md`：记录上游 downstream research surface
   contract 与本 repo 当前消费面的映射
+- `data_contracts/universe_layers.md`：定义 `stock_research_candidate` 内部的
+  港股分层研究契约，不替代默认 target universe
 - `diagnostics/`：去冗余、切片和失败知识化这类诊断层
 - `factor_contracts/`：单因子 metadata 合同
 - `factor_specs/`：可批量生成 Gate A 候选的结构化规格
@@ -145,6 +147,20 @@ python3 harness/build_daily_agg.py --table all --year 2026
 
 ```bash
 python3 harness/status.py
+```
+
+构建股票候选池内部分层：
+
+```bash
+python3 harness/build_universe_layers.py --year 2026 --force
+```
+
+对已有因子做分层 pre-eval 诊断：
+
+```bash
+python3 harness/run_layered_pre_eval.py \
+  --factor structural_activity_proxy \
+  --labels-path runs/<labels_id>/forward_labels.parquet
 ```
 
 比较最近两条因子 run：
