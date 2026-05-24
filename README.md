@@ -15,12 +15,17 @@
 - 上游 repo：`/Users/yxin/AI_Workstation/Hshare_Lab_v2`
 - 本 repo 只读消费上游 verified 和 admissibility 结论
 - 本 repo 不得重定义上游字段语义，也不能反向改写上游 Layer 0
+- 当前默认 lane 只消费上游 `verified_default` surface；上游
+  `explicit_caveat_research`、`top_of_book_bounded` 和 OpenD caveat handoff
+  只作为 future extension lane 记录，不能静默混入默认 harness
 
 现在 repo 里有什么：
 - `ARCHITECTURE_ADDENDUM.md`：研究工厂从“能跑”升级到“可持续 feature discovery”的补充架构
 - `baselines/`：固定 baseline benchmark set
 - `data_contracts/`：固定字段、年份、timing 边界
 - `data_contracts/caveat_lane.md`：说明哪些字段只能走 `phase_a_caveat_lane`
+- `data_contracts/upstream_surfaces.md`：记录上游 downstream research surface
+  contract 与本 repo 当前消费面的映射
 - `diagnostics/`：去冗余、切片和失败知识化这类诊断层
 - `factor_contracts/`：单因子 metadata 合同
 - `factor_specs/`：可批量生成 Gate A 候选的结构化规格
@@ -77,6 +82,9 @@
 当前 universe 分层：
 - `phase_a_core`：默认安全面，只消费 `verified v1` 的结构字段
 - `phase_a_caveat_lane`：受限研究面，只允许显式声明的 caveat-only 字段，并默认人工复核
+- 上游 `top_of_book_bounded` / `top_of_book_with_size_caveat` 不属于当前
+  `phase_a_core`；若要接入，必须新增命名 extension lane、loader、Gate A 规则和
+  输出 metadata
 
 这里还要额外区分 target/source 证券池边界：
 - `phase_a_core` / `phase_a_caveat_lane` 只定义字段 admissibility，不等于“研究对象已经是纯股票池”

@@ -34,6 +34,14 @@
 - full `Ext`
 - `BidOrderID`, `AskOrderID`, `BidVolume`, `AskVolume`
 
+上游 2026-05-24 downstream surface contract 还定义了更宽的
+`explicit_caveat_research` surface，例如 active-order linkage evidence 和
+`PriorActiveVolumeCheck`。这些对象当前还没有接入本 repo 的 Gate A、loader 或
+daily agg，因此不能直接视为本地 `phase_a_caveat_lane` 已支持输入。
+
+上游 `top_of_book_bounded` / `top_of_book_with_size_caveat` 也不是本地
+`phase_a_caveat_lane` 的一部分；它们需要未来单独命名的 extension lane。
+
 规则：
 - research card 必须声明 `universe = "phase_a_caveat_lane"`
 - Gate A 结果至少是 `allow_with_caveat`

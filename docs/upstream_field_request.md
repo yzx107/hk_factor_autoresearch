@@ -4,6 +4,15 @@
 
 本文档不构成对上游的任何修改要求，仅作为沟通信息。
 
+状态更新（2026-05-24）：
+- 上游已新增 downstream research surface contract：
+  `/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/downstream_research_surface_contract_2026-05-24.md`
+- 默认 `verified_default` surface 仍然很窄；本 repo 默认 harness 不扩大。
+- `TradeDir` / `OrderType` 等对象仍只在 explicit caveat 语境使用。
+- `BrokerNo` 仍属于 blocked / keep-out 对象，不能作为 direct alpha 输入。
+- `top_of_book_bounded` 和 OpenD caveat handoff 是 future extension lane，不是当前
+  `phase_a_core` 输入。
+
 ---
 
 ## 1. 当前原材料瓶颈
