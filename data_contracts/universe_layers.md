@@ -253,7 +253,10 @@ factor works / fails / is untested in layer X under layer_version Y
 9. Route extended Gate C outcomes into an explicit follow-up queue before
    writing new factor specs:
    `southbound_split_retest`, `layer_explicit_rewrite`, or hold/retest lanes.
-10. Re-run the current accepted factors first. Only after reading layer response
+10. Add a Gate D tradability screen over the follow-up queue: target-layer
+   sample-out, stricter cost, turnover, hit-rate, stability, and fail-closed
+   source-gap decisions before any paper-trade watch.
+11. Re-run the current accepted factors first. Only after reading layer response
    should new factor specs be added.
 
 ## Source Links

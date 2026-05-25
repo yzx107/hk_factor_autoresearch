@@ -92,6 +92,14 @@ python3 harness/route_layered_gate_c_followups.py \
   --notes "post extended gate c routing"
 ```
 
+对后续队列做 Gate D 样本外交易可行性检查：
+
+```bash
+python3 harness/run_layered_gate_d.py \
+  --gate-c-summary runs/<gate_c_id>/layered_gate_c_summary.json \
+  --notes "gate d sample-out tradability screen"
+```
+
 建议的 anchor run：
 
 ```bash
