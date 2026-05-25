@@ -261,7 +261,10 @@ factor works / fails / is untested in layer X under layer_version Y
 10. Add a Gate D tradability screen over the follow-up queue: target-layer
    sample-out, stricter cost, turnover, hit-rate, stability, and fail-closed
    source-gap decisions before any paper-trade watch.
-11. Re-run the current accepted factors first. Only after reading layer response
+11. Add a Gate E capacity/slippage screen for any small-illiquid survivors
+   before paper-trade watch: participation-limited gross capacity, selected
+   turnover distribution, concentration, and 50/100 bps stress.
+12. Re-run the current accepted factors first. Only after reading layer response
    should new factor specs be added.
 
 ## Source Links

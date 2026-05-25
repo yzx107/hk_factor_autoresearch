@@ -31,6 +31,8 @@ universe under this complete-list contract.
   0 `advance_paper_trade_watch`.
 - Layered triage now compares `southbound_eligible` against known
   `southbound_not_eligible` as well as fail-closed `southbound_unknown`.
+- Gate E capacity/slippage: 4 `research_only_micro_capacity`,
+  0 `paper_trade_micro_watch`.
 
 ## Interpretation
 
@@ -44,3 +46,10 @@ Do not mine broad all-candidate variants from this batch. The next useful work
 is either a dedicated small-illiquid capacity/slippage harness, or a new factor
 family focused on eligible and large-liquid flow where Gate D can actually
 advance.
+
+## Gate E Capacity Result
+
+Gate E confirms the small-illiquid traces remain positive after 50bps and
+100bps stress, but fail robust capacity. At 1% participation, p25 equal-weight
+gross capacity is only HKD 7 to HKD 25 across the four surviving candidates.
+That is not a tradable paper-watch result; it is micro-capacity research only.

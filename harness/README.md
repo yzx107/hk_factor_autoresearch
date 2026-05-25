@@ -100,6 +100,14 @@ python3 harness/run_layered_gate_d.py \
   --notes "gate d sample-out tradability screen"
 ```
 
+对 Gate D 的小票容量风险候选做 Gate E 容量/滑点检查：
+
+```bash
+python3 harness/run_small_illiquid_capacity_gate.py \
+  --gate-d-summary runs/<gate_d_id>/layered_gate_d_summary.json \
+  --notes "gate e small illiquid capacity and slippage screen"
+```
+
 建议的 anchor run：
 
 ```bash
