@@ -136,10 +136,26 @@ def _southbound_split(row: dict[str, Any], threshold: float) -> dict[str, Any]:
     rows = list(row.get("southbound_layer_rows") or [])
     eligible = _layer_metric(rows, "southbound_eligible")
     unknown = _layer_metric(rows, "southbound_unknown")
-    gap = None if eligible is None or unknown is None else abs(eligible - unknown)
+    not_eligible = _layer_metric(rows, "southbound_not_eligible")
+    comparisons = [
+        (name, value, abs(eligible - value))
+        for name, value in [
+            ("southbound_not_eligible", not_eligible),
+            ("southbound_unknown", unknown),
+        ]
+        if eligible is not None and value is not None
+    ]
+    comparison_layer = ""
+    comparison_value = None
+    gap = None
+    if comparisons:
+        comparison_layer, comparison_value, gap = max(comparisons, key=lambda item: item[2])
     return {
         "southbound_abs_rank_ic": eligible,
         "southbound_unknown_abs_rank_ic": unknown,
+        "southbound_not_eligible_abs_rank_ic": not_eligible,
+        "southbound_comparison_layer": comparison_layer,
+        "southbound_comparison_abs_rank_ic": comparison_value,
         "southbound_abs_rank_ic_gap": gap,
         "needs_southbound_split": bool(gap is not None and gap >= threshold),
     }
@@ -202,7 +218,7 @@ def _lane_and_action(
     if primary == "needs_southbound_split":
         return (
             "large_southbound_research",
-            "Split southbound_eligible versus unknown before any Gate C or cost-stress promotion.",
+            "Split southbound_eligible versus not-eligible or unknown before any Gate C promotion.",
         )
     if primary == "promote_broad_candidate":
         lane = "large_southbound_research" if "large_liquid_core" in row.get("signal_layers", []) else "broad_retest"
@@ -354,8 +370,8 @@ def render_monthly_summary(payload: dict[str, Any]) -> str:
             "",
             "## Decision Board",
             "",
-            "| factor | decision | secondary | lane | class | strongest | max_abs_ic | dispersion | sb_gap |",
-            "| --- | --- | --- | --- | --- | --- | ---: | ---: | ---: |",
+            "| factor | decision | secondary | lane | class | strongest | max_abs_ic | dispersion | sb_compare | sb_gap |",
+            "| --- | --- | --- | --- | --- | --- | ---: | ---: | --- | ---: |",
         ]
     )
     for row in payload["decisions"]:
@@ -372,6 +388,7 @@ def render_monthly_summary(payload: dict[str, Any]) -> str:
                     row["strongest_layer"],
                     _fmt(row["max_abs_rank_ic"]),
                     _fmt(row["layer_dispersion"]),
+                    row["southbound_comparison_layer"],
                     _fmt(row["southbound_abs_rank_ic_gap"]),
                 ]
             )

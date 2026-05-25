@@ -29,6 +29,8 @@ universe under this complete-list contract.
 - Follow-up queue: 2 `southbound_split_retest`, 4 `layer_explicit_rewrite`.
 - Gate D: 4 `research_only_capacity_risk`, 2 `reject_gate_d`,
   0 `advance_paper_trade_watch`.
+- Layered triage now compares `southbound_eligible` against known
+  `southbound_not_eligible` as well as fail-closed `southbound_unknown`.
 
 ## Interpretation
 

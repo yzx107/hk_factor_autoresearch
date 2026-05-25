@@ -18,7 +18,14 @@ def _board_row(
     strongest_layer: str = "large_liquid_core",
     southbound: float = 0.08,
     unknown: float = 0.02,
+    not_eligible: float | None = None,
 ) -> dict[str, object]:
+    southbound_rows: list[dict[str, object]] = [
+        {"layer_value": "southbound_eligible", "abs_rank_ic": southbound},
+        {"layer_value": "southbound_unknown", "abs_rank_ic": unknown},
+    ]
+    if not_eligible is not None:
+        southbound_rows.append({"layer_value": "southbound_not_eligible", "abs_rank_ic": not_eligible})
     return {
         "factor_name": factor_name,
         "classification": classification,
@@ -29,10 +36,7 @@ def _board_row(
         "max_abs_rank_ic": 0.11,
         "layer_dispersion": 0.03,
         "run_dir": "/tmp/factor_a",
-        "southbound_layer_rows": [
-            {"layer_value": "southbound_eligible", "abs_rank_ic": southbound},
-            {"layer_value": "southbound_unknown", "abs_rank_ic": unknown},
-        ],
+        "southbound_layer_rows": southbound_rows,
     }
 
 
@@ -43,6 +47,16 @@ class LayeredTriageTest(unittest.TestCase):
         self.assertEqual(decision["primary_decision"], "needs_southbound_split")
         self.assertEqual(decision["secondary_decisions"], ["promote_broad_candidate"])
         self.assertEqual(decision["research_lane"], "large_southbound_research")
+
+    def test_broad_candidate_with_not_eligible_gap_requires_split(self) -> None:
+        decision = derive_layered_decision(
+            _board_row(southbound=0.08, unknown=0.07, not_eligible=0.01),
+            southbound_split_threshold=0.04,
+        )
+
+        self.assertEqual(decision["primary_decision"], "needs_southbound_split")
+        self.assertEqual(decision["southbound_comparison_layer"], "southbound_not_eligible")
+        self.assertAlmostEqual(decision["southbound_abs_rank_ic_gap"], 0.07)
 
     def test_new_listing_candidate_stays_in_new_listing_lane(self) -> None:
         decision = derive_layered_decision(
@@ -114,6 +128,7 @@ class LayeredTriageTest(unittest.TestCase):
             large_lane = [row for row in payload["factor_spec_lanes"] if row["lane"] == "large_southbound_research"][0]
             self.assertEqual(large_lane["factor_names"], ["broad_factor"])
             self.assertIn("large_southbound_research", doc_path.read_text(encoding="utf-8"))
+            self.assertIn("sb_compare", doc_path.read_text(encoding="utf-8"))
             self.assertEqual(len(log_path.read_text(encoding="utf-8").strip().splitlines()), 3)
 
 

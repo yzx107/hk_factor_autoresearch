@@ -302,8 +302,8 @@ def write_markdown_report(payload: dict[str, Any], path: Path) -> None:
             "",
             "## Factor Board",
             "",
-            "| factor | class | strongest | weakest | large | mid | new | small | southbound | unknown |",
-            "| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |",
+            "| factor | class | strongest | weakest | large | mid | new | small | southbound | not_eligible | unknown |",
+            "| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
         ]
     )
     for row in payload["factors"]:
@@ -322,6 +322,7 @@ def write_markdown_report(payload: dict[str, Any], path: Path) -> None:
                     _fmt(_layer_metric(primary, "new_or_recent_listing")),
                     _fmt(_layer_metric(primary, "small_illiquid_special")),
                     _fmt(_layer_metric(southbound, "southbound_eligible")),
+                    _fmt(_layer_metric(southbound, "southbound_not_eligible")),
                     _fmt(_layer_metric(southbound, "southbound_unknown")),
                 ]
             )
