@@ -116,6 +116,48 @@ class UniverseLayerTest(unittest.TestCase):
         self.assertEqual(row["southbound_active_proxy"], "source_missing")
         self.assertEqual(row["index_flow_bucket"], "source_missing")
 
+    def test_southbound_complete_seed_marks_absent_candidates_known_false(self) -> None:
+        profile = pl.DataFrame(
+            {
+                "instrument_key": ["00001", "00002"],
+                "as_of_date": ["2026-05-25", "2026-05-25"],
+                "listing_date": ["2020-01-01", "2020-01-01"],
+                "circulating_mktcap_hkd": [1000.0, 500.0],
+                "stock_research_candidate": [True, True],
+                "observed_trades_days": [10, 10],
+                "observed_orders_days": [10, 10],
+            }
+        )
+        seed = pl.DataFrame(
+            {
+                "instrument_key": ["00001"],
+                "southbound_eligible": [True],
+                "as_of_date": ["2026-05-22"],
+                "source_label": ["fixture_full_list"],
+            }
+        )
+        config = {
+            **_config(),
+            "southbound": {
+                "complete_eligible_list_absence_means_false": True,
+                "absence_source_label": "fixture_absence_not_eligible",
+            },
+        }
+
+        frame, diagnostics = build_universe_layer_frame(
+            profile,
+            year="2026",
+            config=config,
+            southbound_seed=seed,
+        )
+        rows = {row["instrument_key"]: row for row in frame.to_dicts()}
+
+        self.assertTrue(rows["00001"]["southbound_eligible"])
+        self.assertFalse(rows["00002"]["southbound_eligible"])
+        self.assertTrue(rows["00002"]["southbound_eligible_known"])
+        self.assertEqual(rows["00002"]["southbound_source_label"], "fixture_absence_not_eligible")
+        self.assertEqual(diagnostics["southbound_seed_rows"], 1)
+
     def test_summarize_universe_layers_reports_layer_and_missing_counts(self) -> None:
         profile = pl.DataFrame(
             {

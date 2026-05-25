@@ -173,6 +173,27 @@ class LayeredGateCTest(unittest.TestCase):
         self.assertEqual(decision, "needs_southbound_split")
         self.assertIn("southbound", reasons[0])
 
+    def test_decide_gate_c_requires_known_not_eligible_bucket_to_pass(self) -> None:
+        decision, reasons = _decide_gate_c(
+            base_passed=True,
+            primary_rows=[
+                {"slice_value": "large_liquid_core", "passed": True},
+                {"slice_value": "mid_liquid_tradable", "passed": True},
+            ],
+            southbound_rows=[
+                {"slice_value": "southbound_eligible", "passed": True},
+                {"slice_value": "southbound_not_eligible", "passed": False},
+            ],
+            time_rows=[
+                {"slice_value": "early_half", "passed": True},
+                {"slice_value": "late_half", "passed": True},
+            ],
+            policy={"min_primary_pass_layers": 2},
+        )
+
+        self.assertEqual(decision, "needs_southbound_split")
+        self.assertIn("southbound_not_eligible", reasons[0])
+
 
 if __name__ == "__main__":
     unittest.main()

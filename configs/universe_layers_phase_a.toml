@@ -6,7 +6,12 @@ target_instrument_universe = "stock_research_candidate"
 [paths]
 instrument_profile = "/Volumes/Data/港股Tick数据/reference/instrument_profile/latest/instrument_profile.parquet"
 newly_listed_hk_template = "/Volumes/Data/港股Tick数据/reference/newly_listed_hk/year={year}/newly_listed_hk_{year}.parquet"
+southbound_eligible_seed = "/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/References/normalized/hkex_southbound_seed.csv"
 output_root = "cache/universe_layers"
+
+[southbound]
+complete_eligible_list_absence_means_false = true
+absence_source_label = "hkex_southbound_seed_absence_not_eligible"
 
 [liquidity]
 mode = "daily_agg_if_available"

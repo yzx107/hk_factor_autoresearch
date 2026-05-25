@@ -151,6 +151,11 @@ Available now:
   - listing date range: 2026-01-02 to 2026-05-13
   - caveat: reference/caveat handoff, not verified semantic layer
 - `/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/References/normalized/hkex_southbound_seed.csv`
+- `hkex_southbound_seed.csv` is treated as a complete eligible list for the
+  current Phase A builder: listed instruments present in the file are
+  `southbound_eligible=true`; stock candidates absent from the file are known
+  `southbound_eligible=false` under source label
+  `hkex_southbound_seed_absence_not_eligible`.
 - `/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/References/normalized/instrument_profile_seed.csv`
 
 Missing or not yet normalized:
@@ -160,7 +165,7 @@ Missing or not yet normalized:
 - short-sell/options eligibility history;
 - official 18A/18C issuer tags by instrument and date;
 - Southbound holdings/turnover by instrument and date; current eligibility is
-  present only as a point-in-time reference snapshot;
+  present only as a complete point-in-time eligible-list snapshot;
 - free-float/holding concentration history for a stronger
   `legacy_illiquid_risk_proxy`.
 

@@ -302,7 +302,11 @@ def _decide_gate_c(
 ) -> tuple[str, list[str]]:
     reasons: list[str] = []
     primary_passes = [row for row in primary_rows if row["passed"] and row["slice_value"] not in {"unknown", "unlayered"}]
-    southbound_named = [row for row in southbound_rows if row["slice_value"] in {"southbound_eligible", "southbound_unknown"}]
+    southbound_named = [
+        row
+        for row in southbound_rows
+        if row["slice_value"] in {"southbound_eligible", "southbound_not_eligible", "southbound_unknown"}
+    ]
     southbound_named_passes = [row for row in southbound_named if row["passed"]]
     time_passes = [row for row in time_rows if row["passed"]]
 
@@ -323,8 +327,9 @@ def _decide_gate_c(
     if len(primary_passes) < int(policy["min_primary_pass_layers"]):
         reasons.append("not enough primary tradability layers passed")
         return "needs_layer_split", reasons
-    if len(southbound_named) >= 2 and len(southbound_named_passes) < 2:
-        reasons.append("southbound eligible and unknown buckets failed to both pass cost stress")
+    if len(southbound_named) >= 2 and len(southbound_named_passes) < len(southbound_named):
+        failed = ",".join(str(row["slice_value"]) for row in southbound_named if not row["passed"])
+        reasons.append(f"southbound buckets failed to all pass cost stress: {failed}")
         return "needs_southbound_split", reasons
     return "advance_gate_d_watch", ["passed cost, layer, southbound, and time stress checks"]
 

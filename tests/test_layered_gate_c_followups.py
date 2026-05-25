@@ -59,7 +59,7 @@ class LayeredGateCFollowupTest(unittest.TestCase):
         self.assertEqual(followup["followup_lane"], "southbound_split_retest")
         self.assertEqual(followup["target_southbound_buckets"], ["southbound_unknown"])
         self.assertEqual(followup["target_primary_layers"], ["large_liquid_core"])
-        self.assertEqual(followup["action"], "split_unknown_from_eligible_then_retest")
+        self.assertEqual(followup["action"], "split_passing_southbound_bucket_then_retest")
 
     def test_layer_split_targets_layer_explicit_rewrite(self) -> None:
         followup = derive_followup(

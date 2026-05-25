@@ -214,6 +214,34 @@ def _newly_listed_frame(newly_listed: pl.DataFrame | None) -> pl.DataFrame:
     )
 
 
+def _southbound_seed_frame(seed: pl.DataFrame | None) -> pl.DataFrame:
+    if seed is None or seed.height == 0:
+        return pl.DataFrame(
+            schema={
+                "instrument_key": pl.Utf8,
+                "southbound_seed_eligible": pl.Boolean,
+                "southbound_seed_as_of_date": pl.Date,
+                "southbound_seed_source_label": pl.Utf8,
+            }
+        )
+    frame = _ensure_date(seed, "as_of_date")
+    frame = _ensure_column(frame, "southbound_eligible", pl.Boolean, True)
+    frame = _ensure_column(frame, "source_label", pl.Utf8, "")
+    frame = frame.with_columns(pl.col("instrument_key").cast(pl.Utf8).str.zfill(5))
+    return (
+        frame.filter(pl.col("southbound_eligible"))
+        .select(
+            [
+                "instrument_key",
+                pl.lit(True).alias("southbound_seed_eligible"),
+                pl.col("as_of_date").alias("southbound_seed_as_of_date"),
+                pl.col("source_label").alias("southbound_seed_source_label"),
+            ]
+        )
+        .unique("instrument_key")
+    )
+
+
 def build_universe_layer_frame(
     profile: pl.DataFrame,
     *,
@@ -221,6 +249,7 @@ def build_universe_layer_frame(
     config: dict[str, Any],
     newly_listed: pl.DataFrame | None = None,
     liquidity: pl.DataFrame | None = None,
+    southbound_seed: pl.DataFrame | None = None,
     source_trace: dict[str, Any] | None = None,
 ) -> tuple[pl.DataFrame, dict[str, Any]]:
     thresholds = config.get("thresholds", {})
@@ -235,11 +264,17 @@ def build_universe_layer_frame(
     newly = _newly_listed_frame(newly_listed)
     liquidity_proxy = build_liquidity_proxy_frame(liquidity)
     liquidity_loaded = liquidity is not None and liquidity.height > 0
+    southbound_config = config.get("southbound", {})
+    southbound_complete_list = bool(southbound_config.get("complete_eligible_list_absence_means_false", False))
+    southbound_seed_proxy = _southbound_seed_frame(southbound_seed)
+    southbound_seed_loaded = southbound_seed is not None and southbound_seed.height > 0
+    southbound_absence_label = str(southbound_config.get("absence_source_label", "complete_eligible_list_absence"))
     trace_json = json.dumps(source_trace or {}, ensure_ascii=False, sort_keys=True)
 
     frame = (
         base.join(newly, on="instrument_key", how="left")
         .join(liquidity_proxy, on="instrument_key", how="left")
+        .join(southbound_seed_proxy, on="instrument_key", how="left")
         .with_columns(
             [
                 pl.col("newly_listed_reference_included").fill_null(False),
@@ -249,6 +284,26 @@ def build_universe_layer_frame(
                     "size_proxy_hkd"
                 ),
                 pl.coalesce(["avg_daily_turnover_hkd", "latest_turnover_hkd"]).alias("liquidity_proxy_hkd"),
+            ]
+        )
+        .with_columns(
+            [
+                pl.when(pl.lit(southbound_seed_loaded and southbound_complete_list))
+                .then(pl.col("southbound_seed_eligible").fill_null(False))
+                .otherwise(pl.coalesce(["southbound_eligible", "southbound_seed_eligible"]))
+                .alias("southbound_eligible"),
+                pl.when(pl.col("southbound_seed_eligible").is_not_null())
+                .then(pl.col("southbound_seed_as_of_date"))
+                .when(pl.lit(southbound_seed_loaded and southbound_complete_list))
+                .then(_max_date_or_default(southbound_seed_proxy, "southbound_seed_as_of_date", date(int(year), 12, 31)))
+                .otherwise(pl.col("southbound_as_of_date"))
+                .alias("southbound_as_of_date"),
+                pl.when(pl.col("southbound_seed_eligible").is_not_null())
+                .then(pl.col("southbound_seed_source_label"))
+                .when(pl.lit(southbound_seed_loaded and southbound_complete_list))
+                .then(pl.lit(southbound_absence_label))
+                .otherwise(pl.col("southbound_source_label"))
+                .alias("southbound_source_label"),
             ]
         )
         .with_columns(
@@ -386,6 +441,9 @@ def build_universe_layer_frame(
         "small_liquidity_cutoff": small_cutoff,
         "liquidity_source_loaded": liquidity_loaded,
         "liquidity_input_rows": 0 if liquidity is None else liquidity.height,
+        "southbound_seed_loaded": southbound_seed_loaded,
+        "southbound_seed_rows": 0 if southbound_seed is None else southbound_seed.height,
+        "southbound_complete_list_absence_means_false": southbound_complete_list,
     }
     return frame, diagnostics
 
@@ -450,6 +508,7 @@ def build_universe_layers_for_year(
     paths = config.get("paths", {})
     profile_path = _resolve_path(str(paths["instrument_profile"]), year=year)
     newly_path = _resolve_path(str(paths["newly_listed_hk_template"]), year=year)
+    southbound_path = _resolve_path(str(paths["southbound_eligible_seed"]), year=year) if paths.get("southbound_eligible_seed") else None
     output_root = _resolve_path(str(paths.get("output_root", DEFAULT_LAYER_ROOT)), year=year)
     output_dir = output_root / f"year={year}"
     output_path = output_dir / f"universe_layers_{year}.parquet"
@@ -459,10 +518,16 @@ def build_universe_layers_for_year(
 
     profile = pl.read_parquet(profile_path)
     newly = pl.read_parquet(newly_path) if newly_path.exists() else None
+    southbound_seed = (
+        pl.read_csv(southbound_path, schema_overrides={"instrument_key": pl.Utf8})
+        if southbound_path is not None and southbound_path.exists()
+        else None
+    )
     liquidity, liquidity_trace = _load_liquidity_source(year, config)
     source_paths = {
         "instrument_profile": str(profile_path),
         "newly_listed_hk": str(newly_path) if newly_path.exists() else "",
+        "southbound_eligible_seed": str(southbound_path) if southbound_path is not None and southbound_path.exists() else "",
         "liquidity_source": json.dumps(liquidity_trace, ensure_ascii=False, sort_keys=True),
     }
     frame, diagnostics = build_universe_layer_frame(
@@ -471,6 +536,7 @@ def build_universe_layers_for_year(
         config=config,
         newly_listed=newly,
         liquidity=liquidity,
+        southbound_seed=southbound_seed,
         source_trace=source_paths,
     )
     manifest = summarize_universe_layers(

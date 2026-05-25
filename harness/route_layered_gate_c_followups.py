@@ -124,7 +124,7 @@ def derive_followup(row: dict[str, Any]) -> dict[str, Any]:
     if decision == "needs_southbound_split":
         lane = "southbound_split_retest"
         action = (
-            "split_unknown_from_eligible_then_retest"
+            "split_passing_southbound_bucket_then_retest"
             if southbound_passes
             else "retest_southbound_buckets_before_promotion"
         )
@@ -281,7 +281,7 @@ def render_followup_report(payload: dict[str, Any]) -> str:
             + " |"
         )
     lines.extend(["", "## Guardrails", ""])
-    lines.append("- `southbound_split_retest` must separate `southbound_eligible` from fail-closed unknown flow before promotion.")
+    lines.append("- `southbound_split_retest` must separate eligible, not-eligible, and unknown flow before promotion.")
     lines.append("- `layer_explicit_rewrite` should become a layer-scoped factor spec, not a broad all-candidate factor.")
     lines.append("- Small-illiquid targets remain capacity and slippage constrained until a later cost gate proves otherwise.")
     return "\n".join(lines) + "\n"
